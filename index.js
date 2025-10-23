@@ -1,7 +1,9 @@
-const express = require('express')
-const app = express()
+const express = require('express');
+const app = express();
 const mongoose = require("mongoose");
-const modelRoute = require("./routes/models.route")
+const cookieParser = require("cookie-parser");
+const modelRoute = require("./routes/models.route");
+const authRoute = require("./routes/auth.route");
 require("dotenv").config();
 
 const User = require("./models/user.model");
@@ -16,7 +18,7 @@ const Student = require("./models/student.model");
 const Trip = require("./models/trip.model");
 const AppError = require("./utils/appError");
 
-// --- DATABASE CONNECTION ---
+// Database connection
 const { DB_URL, PORT } = process.env;
 const port = PORT || 3000;
 mongoose.connect(DB_URL)
@@ -34,6 +36,8 @@ console.log("Connecting to DB URL:", DB_URL.split('@')[1]);
 
 // MIDDLEWARES
 app.use(express.json()); // Body parser, for reading data from body into req.body
+
+app.use(cookieParser()); // send Cookie for JWT
 
 const models = {
     users: User,
@@ -58,7 +62,11 @@ const getModel = (req, res, next) => {
     next();
 }
 
-app.use("/:models", getModel, modelRoute);
+// 1. Authentication Routes
+app.use("/api/v1/auth", authRoute);
+
+// 2. Generic CRUD Routes for all models
+app.use("/api/v1/:models", getModel, modelRoute);
 
 // Khong tim thay endpoint phu hop
 // This middleware will run for any request that didn't match a route above
