@@ -1,10 +1,11 @@
+require("dotenv").config(); // Load environment variables FIRST
+
 const express = require('express');
 const app = express();
 const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
 const modelRoute = require("./routes/models.route");
 const authRoute = require("./routes/auth.route");
-require("dotenv").config();
 
 const User = require("./models/user.model");
 const Alert = require("./models/alert.model");
@@ -21,14 +22,20 @@ const AppError = require("./utils/appError");
 // Database connection
 const { DB_URL, PORT } = process.env;
 const port = PORT || 3000;
+
+if (!DB_URL) {
+    console.error("🔴 ERROR: DB_URL is not defined in .env file");
+    process.exit(1);
+}
+
+console.log("Connecting to DB URL:", DB_URL.includes('@') ? DB_URL.split('@')[1] : DB_URL);
+
 mongoose.connect(DB_URL)
-    .then(() => { console.log("Database connected successfully!") })
+    .then(() => { console.log("✅ Database connected successfully!") })
     .catch((err) => {
         console.error("🔴 Database connection error:", err.message);
         process.exit(1); // Exit process with failure
     });
-
-console.log("Connecting to DB URL:", DB_URL.split('@')[1]);
 
 /**
  * @type {import('express').RequestHandler}

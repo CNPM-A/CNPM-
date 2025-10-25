@@ -1,0 +1,438 @@
+### ============================================
+### SCHOOL BUS MANAGEMENT SYSTEM - API TESTS
+### ============================================
+### Hướng dẫn:
+### 1. Cài extension "REST Client" (humao.rest-client)
+### 2. Click "Send Request" phía trên mỗi request
+### 3. Thay đổi {{baseUrl}} và {{accessToken}} theo môi trường của bạn
+### ============================================
+
+@baseUrl = http://localhost:3000/api/v1
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4ZmM0YzJjMGJkNmIwZmFhZWQxMDdlZCIsImlhdCI6MTc2MTM2NTA4NiwiZXhwIjoxNzYxMzY1OTg2fQ.792d1dkbCHoVerduZZUff7px4MJcBrfcU3lwcThbqds
+@refreshToken = 
+
+### ============================================
+### 1. AUTHENTICATION - Xác thực
+### ============================================
+
+### 1.1 Đăng ký tài khoản Admin
+POST {{baseUrl}}/auth/signup
+Content-Type: application/json
+
+{
+  "name": "Admin Test",
+  "email": "admin@test.com",
+  "phoneNumber": "0123456789",
+  "password": "Admin123456",
+  "role": "Admin"
+}
+
+### 1.2 Đăng ký tài khoản Parent
+POST {{baseUrl}}/auth/signup
+Content-Type: application/json
+
+{
+  "name": "Parent Test",
+  "email": "parent@test.com",
+  "phoneNumber": "0987654321",
+  "password": "Parent123456",
+  "role": "Parent"
+}
+
+### 1.3 Đăng ký tài khoản Driver
+POST {{baseUrl}}/auth/signup
+Content-Type: application/json
+
+{
+  "name": "Driver Test",
+  "email": "driver@test.com",
+  "phoneNumber": "0111222333",
+  "password": "Driver123456",
+  "role": "Driver"
+}
+
+### 1.4 Đăng nhập bằng email
+POST {{baseUrl}}/auth/signin
+Content-Type: application/json
+
+{
+  "username": "admin@test.com",
+  "password": "Admin123456"
+}
+
+### 1.5 Đăng nhập bằng số điện thoại
+POST {{baseUrl}}/auth/signin
+Content-Type: application/json
+
+{
+  "username": "0123456789",
+  "password": "Admin123456"
+}
+
+### 1.6 Làm mới Access Token (dùng cookie từ response)
+POST {{baseUrl}}/auth/token
+
+### 1.7 Đăng xuất
+DELETE {{baseUrl}}/auth/logout
+
+
+### ============================================
+### 2. USERS - Quản lý người dùng
+### ============================================
+### Lưu ý: Thay {{accessToken}} bằng token nhận được từ signin
+
+### 2.1 Lấy danh sách tất cả users
+GET {{baseUrl}}/users
+Authorization: Bearer {{accessToken}}
+
+### 2.2 Lấy thông tin 1 user (thay :id)
+GET {{baseUrl}}/users/672b9a5c3e4f2a1b3c5d6e7f
+Authorization: Bearer {{accessToken}}
+
+### 2.3 Tạo user mới
+POST {{baseUrl}}/users
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Manager Test",
+  "email": "manager@test.com",
+  "phoneNumber": "0999888777",
+  "password": "Manager123",
+  "role": "Manager"
+}
+
+### 2.4 Cập nhật user
+PUT {{baseUrl}}/users/672b9a5c3e4f2a1b3c5d6e7f
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Manager Updated"
+}
+
+### 2.5 Xóa user
+DELETE {{baseUrl}}/users/672b9a5c3e4f2a1b3c5d6e7f
+Authorization: Bearer {{accessToken}}
+
+
+### ============================================
+### 3. BUSES - Quản lý xe bus
+### ============================================
+
+### 3.1 Lấy danh sách xe bus
+GET {{baseUrl}}/buses
+Authorization: Bearer {{accessToken}}
+
+### 3.2 Tạo xe bus mới
+POST {{baseUrl}}/buses
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "licensePlate": "29A-12345"
+}
+
+### 3.3 Tạo nhiều xe bus
+POST {{baseUrl}}/buses
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "licensePlate": "29B-67890"
+}
+
+###
+POST {{baseUrl}}/buses
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "licensePlate": "30C-11111"
+}
+
+### 3.4 Cập nhật xe bus
+PUT {{baseUrl}}/buses/672b9a5c3e4f2a1b3c5d6e7f
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "isAssigned": true
+}
+
+### 3.5 Xóa xe bus
+DELETE {{baseUrl}}/buses/672b9a5c3e4f2a1b3c5d6e7f
+Authorization: Bearer {{accessToken}}
+
+
+### ============================================
+### 4. STATIONS - Quản lý điểm dừng
+### ============================================
+
+### 4.1 Lấy danh sách stations
+GET {{baseUrl}}/stations
+Authorization: Bearer {{accessToken}}
+
+### 4.2 Tạo station mới
+POST {{baseUrl}}/stations
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Trường THPT Nguyễn Huệ",
+  "address": {
+    "street": "123 Lê Lợi",
+    "city": "TP.HCM",
+    "district": "Quận 1",
+    "fullAddress": "123 Lê Lợi, Quận 1, TP.HCM",
+    "latitude": 10.7769,
+    "longitude": 106.7009
+  }
+}
+
+### 4.3 Tạo station khác
+POST {{baseUrl}}/stations
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Khu dân cư Phú Mỹ Hưng",
+  "address": {
+    "street": "Nguyễn Văn Linh",
+    "city": "TP.HCM",
+    "district": "Quận 7",
+    "fullAddress": "Nguyễn Văn Linh, Quận 7, TP.HCM",
+    "latitude": 10.7295,
+    "longitude": 106.7193
+  }
+}
+
+### 4.4 Lấy 1 station
+GET {{baseUrl}}/stations/672b9a5c3e4f2a1b3c5d6e7f
+Authorization: Bearer {{accessToken}}
+
+
+### ============================================
+### 5. ROUTES - Quản lý tuyến đường
+### ============================================
+
+### 5.1 Lấy danh sách routes
+GET {{baseUrl}}/routes
+Authorization: Bearer {{accessToken}}
+
+### 5.2 Tạo route mới (cần có stationId thật)
+POST {{baseUrl}}/routes
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Tuyến 01 - Quận 1 - Quận 7",
+  "stopPoints": [
+    "672b9a5c3e4f2a1b3c5d6e7f",
+    "672b9a5c3e4f2a1b3c5d6e80"
+  ]
+}
+
+### 5.3 Cập nhật route
+PUT {{baseUrl}}/routes/672b9a5c3e4f2a1b3c5d6e7f
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Tuyến 01 Updated"
+}
+
+
+### ============================================
+### 6. STUDENTS - Quản lý học sinh
+### ============================================
+
+### 6.1 Lấy danh sách students
+GET {{baseUrl}}/students
+Authorization: Bearer {{accessToken}}
+
+### 6.2 Tạo student mới (cần có parentId, routeId, stationId thật)
+POST {{baseUrl}}/students
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Nguyễn Văn A",
+  "grade": "Lớp 10A1",
+  "parentId": "672b9a5c3e4f2a1b3c5d6e7f",
+  "routeId": "672b9a5c3e4f2a1b3c5d6e80",
+  "pickupStopId": "672b9a5c3e4f2a1b3c5d6e81",
+  "dropoffStopId": "672b9a5c3e4f2a1b3c5d6e82"
+}
+
+### 6.3 Lấy 1 student
+GET {{baseUrl}}/students/672b9a5c3e4f2a1b3c5d6e7f
+Authorization: Bearer {{accessToken}}
+
+
+### ============================================
+### 7. SCHEDULES - Quản lý lịch trình
+### ============================================
+
+### 7.1 Lấy danh sách schedules
+GET {{baseUrl}}/schedules
+Authorization: Bearer {{accessToken}}
+
+### 7.2 Tạo schedule mới
+POST {{baseUrl}}/schedules
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "routeId": "672b9a5c3e4f2a1b3c5d6e7f",
+  "busId": "672b9a5c3e4f2a1b3c5d6e80",
+  "driverId": "672b9a5c3e4f2a1b3c5d6e81",
+  "startDate": "2025-10-25T06:00:00.000Z",
+  "endDate": "2025-10-25T08:00:00.000Z",
+  "stopTimes": [
+    {
+      "stationId": "672b9a5c3e4f2a1b3c5d6e82",
+      "arrivalAt": "2025-10-25T06:30:00.000Z"
+    },
+    {
+      "stationId": "672b9a5c3e4f2a1b3c5d6e83",
+      "arrivalAt": "2025-10-25T07:00:00.000Z"
+    }
+  ],
+  "studentIds": [
+    "672b9a5c3e4f2a1b3c5d6e84",
+    "672b9a5c3e4f2a1b3c5d6e85"
+  ]
+}
+
+
+### ============================================
+### 8. TRIPS - Quản lý chuyến đi
+### ============================================
+
+### 8.1 Lấy danh sách trips
+GET {{baseUrl}}/trips
+Authorization: Bearer {{accessToken}}
+
+### 8.2 Tạo trip mới
+POST {{baseUrl}}/trips
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "scheduleId": "672b9a5c3e4f2a1b3c5d6e7f",
+  "studentsPickedUp": 0,
+  "status": "NOT_STARTED"
+}
+
+### 8.3 Cập nhật trip status
+PUT {{baseUrl}}/trips/672b9a5c3e4f2a1b3c5d6e7f
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "status": "IN_PROGRESS",
+  "studentsPickedUp": 5
+}
+
+
+### ============================================
+### 9. LOCATIONS - Quản lý vị trí GPS
+### ============================================
+
+### 9.1 Lấy danh sách locations
+GET {{baseUrl}}/locations
+Authorization: Bearer {{accessToken}}
+
+### 9.2 Gửi vị trí GPS của xe bus
+POST {{baseUrl}}/locations
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "busId": "672b9a5c3e4f2a1b3c5d6e7f",
+  "latitude": 10.7769,
+  "longitude": 106.7009
+}
+
+
+### ============================================
+### 10. NOTIFICATIONS - Thông báo
+### ============================================
+
+### 10.1 Lấy danh sách notifications
+GET {{baseUrl}}/notifications
+Authorization: Bearer {{accessToken}}
+
+### 10.2 Tạo notification
+POST {{baseUrl}}/notifications
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "recipientId": "672b9a5c3e4f2a1b3c5d6e7f",
+  "contextStudentId": "672b9a5c3e4f2a1b3c5d6e80",
+  "message": "Con bạn đã được đón thành công lúc 6:30 AM"
+}
+
+
+### ============================================
+### 11. ALERTS - Cảnh báo
+### ============================================
+
+### 11.1 Lấy danh sách alerts
+GET {{baseUrl}}/alerts
+Authorization: Bearer {{accessToken}}
+
+### 11.2 Tạo alert
+POST {{baseUrl}}/alerts
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "busId": "672b9a5c3e4f2a1b3c5d6e7f",
+  "driverId": "672b9a5c3e4f2a1b3c5d6e80",
+  "message": "Xe gặp sự cố, cần hỗ trợ"
+}
+
+
+### ============================================
+### 12. TEST CASES - Các trường hợp test đặc biệt
+### ============================================
+
+### 12.1 Test đăng nhập sai password
+POST {{baseUrl}}/auth/signin
+Content-Type: application/json
+
+{
+  "username": "admin@test.com",
+  "password": "WrongPassword"
+}
+
+### 12.2 Test truy cập không có token
+GET {{baseUrl}}/users
+
+### 12.3 Test với token không hợp lệ
+GET {{baseUrl}}/users
+Authorization: Bearer invalid_token_here
+
+### 12.4 Test tạo user với email trùng
+POST {{baseUrl}}/users
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Duplicate Email",
+  "email": "admin@test.com",
+  "phoneNumber": "0999999999",
+  "password": "Test123",
+  "role": "Parent"
+}
+
+### 12.5 Test lấy user không tồn tại
+GET {{baseUrl}}/users/000000000000000000000000
+Authorization: Bearer {{accessToken}}
+
+### 12.6 Test endpoint không tồn tại
+GET {{baseUrl}}/invalid-endpoint
+Authorization: Bearer {{accessToken}}
