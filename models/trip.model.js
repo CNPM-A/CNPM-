@@ -1,4 +1,6 @@
 const mongoose = require("mongoose");
+const scheduleModel = require("./schedule.model");
+const AppError = require("../utils/appError");
 
 const studentStopSchema = new mongoose.Schema({
     studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
@@ -7,6 +9,7 @@ const studentStopSchema = new mongoose.Schema({
     action: {
         enum: ['PENDING', 'PICKED_UP', 'DROPPED_OFF', 'ABSENT'],
         type: String,
+        default: 'PENDING',
         required: true
     },
     timestamp: { type: Date } // Thoi gian quet RFID (null khi PENDING | ABSENT)
@@ -30,7 +33,7 @@ const tripSchema = new mongoose.Schema({
     busId: { type: mongoose.Schema.Types.ObjectId, ref: 'Bus', required: true },
     direction: {
         type: String,
-        enum: ['PICKUP', 'DROP_OFF'],
+        enum: ['PICK_UP', 'DROP_OFF'],
         required: true
     },
 
@@ -50,7 +53,65 @@ const tripSchema = new mongoose.Schema({
 // To prevent creating duplicate trips for the same schedule on the same day
 tripSchema.index({ scheduleId: 1, tripDate: 1 }, { unique: true });
 
-tripSchema.index({ scheduleId: 1, driverId: 1});
-tripSchema.index({ scheduleId: 1, busId: 1});
+tripSchema.index({ scheduleId: 1, driverId: 1 });
+tripSchema.index({ scheduleId: 1, busId: 1 });
+
+tripSchema.pre('save', async function (next) {
+
+    // vua moi khoi tao
+    if (this.isNew) {
+        const schedule = await scheduleModel.findById(this.scheduleId);
+
+        if (!schedule)
+            return next(new AppError(`Schedule doesn't exist, please try again.`, 404));
+
+        this.driverId = schedule.driverId;
+        this.busId = schedule.busId;
+        this.direction = schedule.direction;
+
+        const initialStudentStops = [];
+
+        schedule.stopTimes.forEach(stop => {
+            stop.studentIds.forEach(studentId => {
+                initialStudentStops.push({
+                    studentId: studentId,
+                    stationId: stop.stationId
+                });
+            });
+        }
+        );
+
+        this.studentStops = initialStudentStops;
+
+        return next();
+    }
+
+    // Logic khi UPDATE một chuyến đi
+    if (this.isModified('driverId') || this.isModified('busId') || this.isModified('tripDate')) {
+        const startOfDay = new Date(this.tripDate);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date(this.tripDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        const conflictQuery = {
+            _id: { $ne: this._id }, // Loại trừ chính chuyến đi này
+            tripDate: { $gte: startOfDay, $lte: endOfDay }, // Xung đột trong cùng một ngày
+            direction: this.direction, // Và cùng một chiều (cùng buổi)
+            $or: [ // Khi tài xế HOẶC xe buýt đã được gán cho chuyến khác
+                { driverId: this.driverId },
+                { busId: this.busId }
+            ],
+        };
+
+        const conflictingTrip = await this.constructor.findOne(conflictQuery);
+        if (conflictingTrip) {
+            const message = 'Trip conflict: The selected driver or bus is already assigned to another trip on the same day and direction.';
+            return next(new AppError(message, 409)); // 409 Conflict
+        }
+    }
+
+    next();
+});
 
 module.exports = mongoose.model("Trip", tripSchema);
