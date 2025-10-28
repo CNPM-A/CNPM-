@@ -6,7 +6,7 @@ const routeSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
-    stopPoints: [{
+    orderedStops: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Station'
     }],
