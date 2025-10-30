@@ -3,6 +3,7 @@ const app = express();
 const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
 const modelRoute = require("./routes/models.route");
+const tripRoute = require("./routes/trip.route");
 const authRoute = require("./routes/auth.route");
 require("dotenv").config();
 
@@ -22,7 +23,12 @@ const AppError = require("./utils/appError");
 const { DB_URL, PORT } = process.env;
 const port = PORT || 3000;
 mongoose.connect(DB_URL)
-    .then(() => { console.log("Database connected successfully!") })
+    .then(() => {
+        console.log("Database connected successfully!");
+        app.listen(port, () => {
+            console.log(`App running on port ${port}...`);
+        });
+    })
     .catch((err) => {
         console.error("🔴 Database connection error:", err.message);
         process.exit(1); // Exit process with failure
@@ -62,10 +68,13 @@ const getModel = (req, res, next) => {
     next();
 }
 
-// 1. Authentication Routes
-app.use("/api/v1/auth", authRoute);
+// --- ROUTES ---
+// Các route cụ thể phải được đăng ký TRƯỚC các route động
 
-// 2. Generic CRUD Routes for all models
+app.use("/api/v1/auth", authRoute);
+app.use("/api/v1/trips", tripRoute);
+
+// Route động (generic) phải được đăng ký SAU CÙNG
 app.use("/api/v1/:models", getModel, modelRoute);
 
 // Khong tim thay endpoint phu hop
@@ -83,7 +92,3 @@ app.use((err, req, res, next) => {
         msg: err.message
     })
 })
-
-app.listen(port, () => {
-    console.log(`App running on port ${port}...`);
-});

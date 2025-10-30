@@ -93,7 +93,9 @@ scheduleSchema.pre('save', async function (next) {
         // 2. Có ngày trong tuần trùng lặp
         daysOfWeek: { $in: this.daysOfWeek },
         // 3. Cùng chiều đi (PICK_UP hoặc DROP_OFF)
-        direction: this.direction,
+        // direction: this.direction, --> sai logic vi : 
+        // xe hoặc tài xế nếu đã được gán lịch vào một khung giờ, thì bận, bất kể là đang "Đón" hay "Trả".
+
         // 4. Cùng tài xế HOẶC cùng xe buýt
         $or: [
             { driverId: this.driverId },
@@ -110,5 +112,43 @@ scheduleSchema.pre('save', async function (next) {
 
     next();
 });
+
+function getISODay(date) {
+    const jsDay = date.getDay();
+    if (jsDay === 0) return 7; // Chu nhat
+    return jsDay;
+}
+
+scheduleSchema.pre('validate', function (next) {
+    if (this.isNew || this.isModified('startDate') || this.isModified('endDate') || this.isModified('daysOfWeek')) {
+        const { startDate, endDate, daysOfWeek } = this;
+
+        const diffTime = Math.abs(endDate - startDate);
+        const diffDays = Math.ceil(diffTime / (24 * 60 * 60 * 1000));
+
+        if (diffDays >= 6)
+            return next();
+        else {
+
+            const daysOfWeekSet = new Set(daysOfWeek);
+            let foundMatch = false;
+
+            const currentDate = new Date(startDate.getTime());
+
+            while (currentDate <= endDate) {
+                const isoDay = getISODay(currentDate);
+                if (daysOfWeekSet.has(isoDay)) {
+                    foundMatch = true;
+                    break;
+                }
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            if (!foundMatch)
+                return next(new AppError('Validation failed: The selected daysOfWeek do not occur within the specified [startDate, endDate] range.', 400));
+        }
+    }
+
+    next();
+})
 
 module.exports = mongoose.model("Schedule", scheduleSchema);

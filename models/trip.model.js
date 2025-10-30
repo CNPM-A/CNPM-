@@ -56,7 +56,8 @@ tripSchema.index({ scheduleId: 1, tripDate: 1 }, { unique: true });
 tripSchema.index({ scheduleId: 1, driverId: 1 });
 tripSchema.index({ scheduleId: 1, busId: 1 });
 
-tripSchema.pre('save', async function (next) {
+// Middleware chay truoc khi kiem tra
+tripSchema.pre('validate', async function (next) {
 
     // vua moi khoi tao
     if (this.isNew) {
@@ -64,6 +65,20 @@ tripSchema.pre('save', async function (next) {
 
         if (!schedule)
             return next(new AppError(`Schedule doesn't exist, please try again.`, 404));
+
+        const { startDate, endDate } = schedule;
+
+        const tripDateStart = new Date(this.tripDate.toISOString().split('T')[0] + 'T00:00:00.000Z');
+
+        const scheduleStart = new Date(startDate);
+        scheduleStart.setUTCHours(0, 0, 0, 0);
+
+        const scheduleEnd = new Date(endDate);
+        scheduleEnd.setUTCHours(0, 0, 0, 0);
+
+
+        if (tripDateStart < scheduleStart || tripDateStart > scheduleEnd)
+            return next(new AppError(`Invalid tripDate: Trip date (${tripDateStart.toISOString().split('T')[0]}) is outside the valid schedule range (${scheduleStart.toISOString().split('T')[0]} to ${scheduleEnd.toISOString().split('T')[0]}).`, 400));
 
         this.driverId = schedule.driverId;
         this.busId = schedule.busId;

@@ -2,9 +2,7 @@ const ROLES = {
     ADMIN: 'Admin',
     MANAGER: 'Manager',
     DRIVER: 'Driver',
-    PARENT: 'Parent',
-    STATION: 'Station',
-    ROUTE: 'Route'
+    PARENT: 'Parent'
 };
 
 const permissions = {

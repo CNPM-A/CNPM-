@@ -49,7 +49,7 @@ const sendTokenResponse = async (user, statusCode, res) => {
         secure: process.env.NODE_ENV === 'production', // Chir gửi qua HTTPS ở môi trường production
         // Default: localhost:3000 la underfined hoac development
         sameSite: 'strict', // Chống tấn công CSRF
-        maxAge: 7 * 24 * 60 * 60 * 1000 // ms
+        maxAge: 7 * 24 * 60 * 60 * 1000 // ms (neu co maxAge la Cookie Cố định, nguoc lai Cookie Phiên)
         // path: '/' default la /
     });
 
