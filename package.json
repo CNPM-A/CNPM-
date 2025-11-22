@@ -10,6 +10,11 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^7.3.5",
+    "@tailwindcss/vite": "^4.1.17",
+    "axios": "^1.13.2",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.3",
@@ -17,7 +22,9 @@
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.20.0",
     "mongoose": "^8.19.1",
+    "react-router-dom": "^6.30.2",
     "socket.io": "^4.8.1",
+    "tailwindcss": "^4.1.17",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
