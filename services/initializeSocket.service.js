@@ -7,6 +7,9 @@ const Trip = require('../models/trip.model');
 const Student = require('../models/student.model');
 const { Haversine } = require('../utils/haversine');
 const Message = require('../models/message.model');
+const cron = require('node-cron');
+const getScheduleTimeToday = require('../utils/getScheduleTimeToday');
+const Alert = require('../models/alert.model');
 
 /**
  * Initializes Socket.IO event listeners and middleware.
@@ -61,6 +64,83 @@ module.exports = (io) => {
             }
         } catch (error) {
             return next(new AppError('Authentication error: Invalid credentials.', 401));
+        }
+    });
+
+    // Nhận cảnh báo nếu xe bị trễ
+    cron.schedule('*/5 * * * *', async () => {
+        console.log('⏰ Cron: Bắt đầu kiểm tra trễ giờ...');
+
+        const now = new Date();
+
+        const LATENESS_BUFFET_MS = 5 * 60 * 1000;
+
+        try {
+            const inProgressTrips = await Trip.find({
+                status: 'IN_PROGRESS',
+                isLateAlertSent: { $ne: true }
+            }).populate({
+                path: 'scheduleId',
+                select: 'stopTimes'
+            });
+
+            for (const trip of inProgressTrips) {
+                // {
+                // "_id": "...",
+                // "stopTimes": [
+                //     { "stationId": "...", "arrivalTime": "06:30" },
+                //     { "stationId": "...", "arrivalTime": "07:00" }
+                // ]
+                // (Các trường khác bị ẩn vi select)
+                // }  
+                const schedule = trip.scheduleId;
+
+                if (!schedule) continue;
+
+                // Tìm Trạm Tiếp Theo (Next Station)
+                const visitedStationIds = new Set(trip.actualStopTimes.map(s => s.stationId.toString()));
+
+                // Không nằm trong những station đã tới
+                // find() Chạy từ đầu đến cuối mảng. 
+                // Ngay khi nó tìm thấy phần tử đầu tiên thỏa mãn điều kiện (chưa ghé),
+                // nó sẽ dừng lại ngay lập tức và trả về phần tử đó.
+                const nextStop = schedule.stopTimes.find(stop =>
+                    !visitedStationIds.has(stop.stationId.toString()));
+
+                if (!nextStop)
+                    continue;
+
+                const expectedTime = getScheduleTimeToday(nextStop.arrivalTime); // "07:00" -> Date
+
+                // Ngưỡng báo động = Giờ dự kiến + 15 phút
+                const alertThreshold = new Date(expectedTime.getTime() + LATENESS_BUFFET_MS);
+
+                if (now > alertThreshold) {
+                    console.warn(`⚠️ Trip ${trip._id} trễ giờ tới trạm ${nextStop.stationId}`);
+
+                    await Alert.create({
+                        busId: trip.busId,
+                        driverId: trip.driverId,
+                        message: `Xe đang trễ hơn 15 phút so với lịch trình đến trạm kế tiếp.`,
+                        type: 'LATE'
+                    });
+
+                    io.to('receive_notification')
+                    // Phụ huynh có thể: Nhận cảnh báo nếu xe bị trễ
+                    .to(`trip_${trip._id}`)
+                    .emit('alert:new', {
+                        type: 'LATE',
+                        message: `Xe đang trễ hơn 15 phút so với lịch trình đến trạm kế tiếp.`,
+                        tripId: trip._id,
+                        busId: trip.busId
+                    });
+
+                    trip.isLateAlertSent = true;
+                    await trip.save();
+                }
+            }
+        } catch (error) {
+            console.error("Lỗi Cron Job:", error);
         }
     });
 
@@ -141,6 +221,7 @@ module.exports = (io) => {
 
             });
 
+            // Gửi tin nhắn cho tài xế hoặc phụ huynh
             socket.on('chat:send_message', async (data) => {
                 // data = { receiverId: "...", content: "Con tôi hôm nay nghỉ nhé" }
                 let parsedData = data;
@@ -226,8 +307,8 @@ module.exports = (io) => {
                 }
             });
 
-            const MIN_DISTANCE_THRESHOLD = 0.005;
-            const DB_SAVE_INTERVAL_MS = 10000;
+            const MIN_DISTANCE_THRESHOLD = 0.005; // km
+            const DB_SAVE_INTERVAL_MS = 10000; // ms
 
             // QUAN TRỌNG: Không cho join bất kỳ phòng nào cả
             socket.on('driver:update_location', async (data) => {
@@ -441,7 +522,6 @@ module.exports = (io) => {
                     socket.emit('trip:error', 'Lỗi server khi kết thúc chuyến đi.');
                 }
             });
-
             socket.on('disconnect', () => {
                 console.log(`Một XE BUÝT đã ngắt kết nối: ${socket.id} (BusId: ${bus.id})`); // Tieng viet cho de hieu
             });

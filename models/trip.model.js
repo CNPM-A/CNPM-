@@ -52,6 +52,11 @@ const tripSchema = new mongoose.Schema({
         enum: ['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'],
         default: 'NOT_STARTED'
     },
+    isLateAlertSent: {
+        type: Boolean,
+        default: false,
+        select: false
+    },
     studentStops: [studentStopSchema], // Theo dõi trạng thái của từng học sinh tại mỗi trạm
     actualStopTimes: [actualStopTimeSchema] // Theo dõi thời gian thực tế xe đến mỗi trạm
 });
