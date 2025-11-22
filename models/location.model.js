@@ -5,7 +5,7 @@ const locationSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Bus',
         required: true,
-        index: 1
+        // index: 1 dư thừa(Redundant)
     },
     latitude: {
         type: Number,
@@ -18,10 +18,15 @@ const locationSchema = new mongoose.Schema({
     timestamp: {
         type: Date,
         default: Date.now,
-        index: -1,
-        expires: '7d'
+        index: -1, // TTL bắt buộc phải là một index đơn lẻ (single-field index)
+        //  hoặc một index riêng biệt
+        expires: '7d' // TTL
     }
-});
+},
+    {
+        timestamps: false,
+        versionKey: false
+    });
 
 const lastSaveTimestamps = new Map();
 const SAVE_INTERVAL = 30000; // ms
@@ -49,5 +54,7 @@ locationSchema.statics.saveHistory = async function (busId, newCoords) {
         timestamp: now
     });
 };
+
+locationSchema.index({ busId: 1, timestamp: -1 });
 
 module.exports = mongoose.model("Location", locationSchema);
