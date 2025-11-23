@@ -43,7 +43,7 @@ exports.createRoute = catchAsync(async (req, res, next) => {
     ]);
 
     try {
-        // 4. Gọi API OpenRouteService
+        // Gọi API OpenRouteService
         const orsResponse = await axios.post(
             'https://api.openrouteservice.org/v2/directions/driving-car/geojson',
             {
@@ -65,7 +65,7 @@ exports.createRoute = catchAsync(async (req, res, next) => {
         const properties = feature.properties; // Chứa distance, duration
         console.log(geometry, '\n', properties);
 
-        // 5. Lưu vào DB
+        // Lưu vào DB
         // KHÔNG CẦN DECODE: ORS trả về coordinates chuẩn
         const newRoute = await Route.create({
             name: name,

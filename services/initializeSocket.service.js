@@ -126,14 +126,14 @@ module.exports = (io) => {
                     });
 
                     io.to('receive_notification')
-                    // Phụ huynh có thể: Nhận cảnh báo nếu xe bị trễ
-                    .to(`trip_${trip._id}`)
-                    .emit('alert:new', {
-                        type: 'LATE',
-                        message: `Xe đang trễ hơn 15 phút so với lịch trình đến trạm kế tiếp.`,
-                        tripId: trip._id,
-                        busId: trip.busId
-                    });
+                        // Phụ huynh có thể: Nhận cảnh báo nếu xe bị trễ
+                        .to(`trip_${trip._id}`)
+                        .emit('alert:new', {
+                            type: 'LATE',
+                            message: `Xe đang trễ hơn 15 phút so với lịch trình đến trạm kế tiếp.`,
+                            tripId: trip._id,
+                            busId: trip.busId
+                        });
 
                     trip.isLateAlertSent = true;
                     await trip.save();
@@ -359,6 +359,19 @@ module.exports = (io) => {
                 }
             });
 
+            // Nhận thông báo khi xe đến gần
+            socket.on('driver:approaching_station', async (data) => {
+                const { stationId } = data;
+                const validatedTripId = socket.tripId;
+
+                if (!validatedTripId) return;
+
+                io.to(`trip_${validatedTripId}`).emit('bus:approaching_station', {
+                    stationId: stationId,
+                    message: "Xe buýt sắp đến trạm!"
+                });
+            });
+
             // Da toi 1 tram
             socket.on('driver:arrived_at_station', async (data) => {
                 const { stationId } = data;
@@ -396,6 +409,12 @@ module.exports = (io) => {
                     // Kiểm tra xem update có thành công không
                     if (updateResult.modifiedCount > 0) {
                         console.log(`Đã ghi nhận xe ${socket.bus.id} đến trạm ${stationId} (Hợp lệ)`);
+
+                        // Nhận thông báo khi xe đến trạm
+                        io.to(`trip_${validatedTripId}`).emit('bus:arrived_at_station', {
+                            stationId: stationId,
+                            arrivalTime: new Date()
+                        });
                     } else {
                         console.warn(`Bỏ qua ghi nhận trạm ${stationId} cho chuyến ${validatedTripId} (Trạm không hợp lệ hoặc đã tồn tại)`);
                     }
@@ -438,6 +457,12 @@ module.exports = (io) => {
                     // Kiểm tra xem update có thành công không
                     if (updateResult.modifiedCount > 0) {
                         console.log(`Đã ghi nhận xe ${socket.bus.id} rời trạm ${stationId} (Hợp lệ)`);
+
+                        // Nhận thông báo khi xe rời trạm
+                        io.to(`trip_${validatedTripId}`).emit('bus:departed_from_station', {
+                            stationId: stationId,
+                            departureTime: new Date()
+                        });
                     } else {
                         console.warn(`Lỗi khi ghi nhận xe ${socket.bus.id} RỜI trạm ${stationId}:`);
                     }
