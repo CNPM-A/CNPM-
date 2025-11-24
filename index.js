@@ -48,7 +48,7 @@ const io = new Server(server, {
 require('./services/initializeSocket.service')(io);
 
 // De embed io vao request cho viec trao doi realtime voi client
-app.use((req, res, next) =>{
+app.use((req, res, next) => {
     req.io = io;
     next();
 });
@@ -117,6 +117,18 @@ app.use("/api/v1/routes", routeRoute);
 
 // Route động (generic) phải được đăng ký SAU CÙNG
 app.use("/api/v1/:models", getModel, modelRoute);
+
+app.get("/", (req, res) => {
+    res.status(200).json({
+        service: "🚌 Smart School Bus API 🚌",
+        status: "✅ Đang hoạt động ngon lành!",
+        version: "v1.0",
+        message: "😉 Chào mấy ní! Backend ready rùi nè. ✨ Các API xịn xò đang chờ ở /api/v1/",
+        // Thêm uptime để prove cho server không bị ngủ đông 💤
+        uptime: process.uptime(),
+        github: "https://github.com/Auresol69/" // Thêm link repo của bạn (optional)
+    });
+});
 
 // Khong tim thay endpoint phu hop
 // This middleware will run for any request that didn't match a route above
