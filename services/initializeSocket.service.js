@@ -258,6 +258,42 @@ module.exports = (io) => {
                 }
             });
 
+            socket.on('driver:send_alert', async (data) => {
+                // data = { type: 'SOS', message: 'Xe hỏng lốp!' }
+                try {
+                    const driverId = socket.user.id;
+
+                    // Tìm chuyến đi đang chạy của tài xế này (Source of Truth)
+                    // (Vì tài xế chỉ có thể lái 1 xe tại 1 thời điểm)
+                    const activeTrip = await Trip.findOne({
+                        driverId: driverId,
+                        status: 'IN_PROGRESS'
+                    });
+
+                    if (!activeTrip) {
+                        return socket.emit('alert:error', 'Bạn chưa bắt đầu chuyến đi nào.');
+                    }
+
+                    const newAlert = await Alert.create({
+                        busId: activeTrip.busId,
+                        driverId: driverId,
+                        type: data.type || 'SOS',
+                        message: data.message,
+                        timestamp: new Date()
+                    });
+
+                    io.to('receive_notification')
+                        .to(`trip_${activeTrip._id}`)
+                        .emit('alert:new', newAlert);
+
+                    // Phản hồi cho tài xế yên tâm :))
+                    socket.emit('alert:success', 'Đã gửi cảnh báo!');
+
+                } catch (error) {
+                    console.error("Lỗi SOS:", error);
+                }
+            });
+
             socket.on('disconnect', () => {
                 console.log(`Một NGƯỜI XEM đã ngắt kết nối: ${socket.id} (UserId: ${user.id})`); // Tieng viet cho de hieu
             });
