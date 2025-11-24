@@ -1,32 +1,44 @@
 // src/routes/AppRoutes.jsx
-import React, { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import PageLayout from '../components/layout/pagelayout';
+import React, { Suspense, lazy } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import PageLayout from "../components/layout/pagelayout";
 
 // --- Lazy loaded pages (one import per file) ---
 // Parent pages
-const ParentDashboard = lazy(() => import('../pages/parent/ParentDashboard'));
-const ParentFeatures = lazy(() => import('../pages/parent/ParentFeatures'));
-const ParentRoles = lazy(() => import('../pages/parent/ParentRoles'));
-const ParentTracking = lazy(() => import('../pages/parent/ParentTracking'));
-const ParentNotifications = lazy(() => import('../pages/parent/ParentNotifications'));
+const ParentDashboard = lazy(() => import("../pages/parent/ParentDashboard"));
+const ParentFeatures = lazy(() => import("../pages/parent/ParentFeatures"));
+const ParentRoles = lazy(() => import("../pages/parent/ParentRoles"));
+const ParentTracking = lazy(() => import("../pages/parent/ParentTracking"));
+const ParentNotifications = lazy(() =>
+  import("../pages/parent/ParentNotifications")
+);
 
 // Driver pages
-const DriverDashboard = lazy(() => import('../pages/driver/DriverDashboard'));
-const DriverFeatures = lazy(() => import('../pages/driver/DriverFeatures'));
-const DriverContacts = lazy(() => import('../pages/driver/DriverContacts'));
-const DriverDailySchedule = lazy(() => import('../pages/driver/DriverDailySchedule'));
-const DriverOperations = lazy(() => import('../pages/driver/DriverOperations'));
+const DriverDashboard = lazy(() => import("../pages/driver/DriverDashboard"));
+const DriverFeatures = lazy(() => import("../pages/driver/DriverFeatures"));
+const DriverContacts = lazy(() => import("../pages/driver/DriverContacts"));
+const DriverDailySchedule = lazy(() =>
+  import("../pages/driver/DriverDailySchedule")
+);
+const DriverOperations = lazy(() => import("../pages/driver/DriverOperations"));
 
 // Manager pages
-const ManagerDashboard = lazy(() => import('../pages/manager/ManagerDashboard'));
-const ManagerFeatures = lazy(() => import('../pages/manager/ManagerFeatures'));
-const ManagerContacts = lazy(() => import('../pages/manager/ManagerContacts'));
-const Reports = lazy(() => import('../pages/manager/Reports'));
-const CatalogManagement = lazy(() => import('../pages/manager/CatalogManagement'));
-const ScheduleManagement = lazy(() => import('../pages/manager/ScheduleManagement'));
-const BusTracking = lazy(() => import('../pages/manager/BusTracking'));
-const SendNotifications = lazy(() => import('../pages/manager/SendNotifications'));
+const ManagerDashboard = lazy(() =>
+  import("../pages/manager/ManagerDashboard")
+);
+const ManagerFeatures = lazy(() => import("../pages/manager/ManagerFeatures"));
+const ManagerContacts = lazy(() => import("../pages/manager/ManagerContacts"));
+const Reports = lazy(() => import("../pages/manager/Reports"));
+const CatalogManagement = lazy(() =>
+  import("../pages/manager/CatalogManagement")
+);
+const ScheduleManagement = lazy(() =>
+  import("../pages/manager/ScheduleManagement")
+);
+const BusTracking = lazy(() => import("../pages/manager/BusTracking"));
+const SendNotifications = lazy(() =>
+  import("../pages/manager/SendNotifications")
+);
 
 // Optional: a simple fallback while pages load
 const Loader = () => (
@@ -48,7 +60,10 @@ export default function AppRoutes() {
           {/* Root layout */}
           <Route path="/" element={<PageLayout />}>
             {/* path="" => simple landing or redirect to /parent/dashboard (adjust as desired) */}
-            <Route path="" element={<Navigate to="/driver/contacts" replace />} />
+            <Route
+              path=""
+              element={<Navigate to="/parent/dashboard" replace />}
+            />
 
             {/* Parent routes */}
             <Route path="parent">
@@ -80,11 +95,17 @@ export default function AppRoutes() {
               <Route path="catalog" element={<CatalogManagement />} />
               <Route path="schedules" element={<ScheduleManagement />} />
               <Route path="bus-tracking" element={<BusTracking />} />
-              <Route path="send-notifications" element={<SendNotifications />} />
+              <Route
+                path="send-notifications"
+                element={<SendNotifications />}
+              />
             </Route>
 
             {/* Fallback for unknown nested path */}
-            <Route path="*" element={<div className="p-8">Trang không tồn tại (404)</div>} />
+            <Route
+              path="*"
+              element={<div className="p-8">Trang không tồn tại (404)</div>}
+            />
           </Route>
         </Routes>
       </Suspense>
