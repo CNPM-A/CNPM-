@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
+const cors = require('cors');
 const modelRoute = require("./routes/models.route");
 const tripRoute = require("./routes/trip.route");
 const authRoute = require("./routes/auth.route");
@@ -20,15 +21,30 @@ const Student = require("./models/student.model");
 const Trip = require("./models/trip.model");
 const AppError = require("./utils/appError");
 
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+const { DB_URL, PORT } = process.env;
+const port = PORT || 3000;
+
+// CORS cho HTTP API
+app.use(cors({
+    origin: CLIENT_URL, // domain frontend
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    credentials: true // Cho phép cookie token
+}));
+
 // WebSocket
 const { Server } = require('socket.io');
 const http = require('http');
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: '*'
+        origin: CLIENT_URL,
+        methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+        credentials: true
     }
 });
+
+// KHỞI CHẠY SOCKET & CRON JOB
 require('./services/initializeSocket.service')(io);
 
 // De embed io vao request cho viec trao doi realtime voi client
@@ -37,14 +53,19 @@ app.use((req, res, next) =>{
     next();
 });
 
+// HACK CHO RENDER (PING ROUTE)
+// Để UptimeRobot gọi vào đây giữ server không ngủ
+app.get('/ping', (req, res) => {
+    res.status(200).send('pong');
+});
+
 // Database connection
-const { DB_URL, PORT } = process.env;
-const port = PORT || 3000;
 mongoose.connect(DB_URL)
     .then(() => {
         console.log("Database connected successfully!");
         server.listen(port, () => {
-            console.log(`App running on port ${port}...`);
+            console.log(`🚀 App running on port ${port}...`);
+            console.log(`🔗 Client URL allowed: ${CLIENT_URL}`);
         });
     })
     .catch((err) => {
@@ -52,7 +73,8 @@ mongoose.connect(DB_URL)
         process.exit(1); // Exit process with failure
     });
 
-console.log("Connecting to DB URL:", DB_URL.split('@')[1]);
+if (DB_URL)
+    console.log("Connecting to DB URL:", DB_URL.split('@')[1]);
 
 /**
  * @type {import('express').RequestHandler}
