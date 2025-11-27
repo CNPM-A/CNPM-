@@ -6,6 +6,10 @@ const Location = require('../models/location.model');
 const Trip = require('../models/trip.model');
 const Student = require('../models/student.model');
 const { Haversine } = require('../utils/haversine');
+const Message = require('../models/message.model');
+const cron = require('node-cron');
+const getScheduleTimeToday = require('../utils/getScheduleTimeToday');
+const Alert = require('../models/alert.model');
 
 /**
  * Initializes Socket.IO event listeners and middleware.
@@ -60,6 +64,83 @@ module.exports = (io) => {
             }
         } catch (error) {
             return next(new AppError('Authentication error: Invalid credentials.', 401));
+        }
+    });
+
+    // Nhận cảnh báo nếu xe bị trễ
+    cron.schedule('*/5 * * * *', async () => {
+        console.log('⏰ Cron: Bắt đầu kiểm tra trễ giờ...');
+
+        const now = new Date();
+
+        const LATENESS_BUFFET_MS = 5 * 60 * 1000;
+
+        try {
+            const inProgressTrips = await Trip.find({
+                status: 'IN_PROGRESS',
+                isLateAlertSent: { $ne: true }
+            }).populate({
+                path: 'scheduleId',
+                select: 'stopTimes'
+            });
+
+            for (const trip of inProgressTrips) {
+                // {
+                // "_id": "...",
+                // "stopTimes": [
+                //     { "stationId": "...", "arrivalTime": "06:30" },
+                //     { "stationId": "...", "arrivalTime": "07:00" }
+                // ]
+                // (Các trường khác bị ẩn vi select)
+                // }  
+                const schedule = trip.scheduleId;
+
+                if (!schedule) continue;
+
+                // Tìm Trạm Tiếp Theo (Next Station)
+                const visitedStationIds = new Set(trip.actualStopTimes.map(s => s.stationId.toString()));
+
+                // Không nằm trong những station đã tới
+                // find() Chạy từ đầu đến cuối mảng. 
+                // Ngay khi nó tìm thấy phần tử đầu tiên thỏa mãn điều kiện (chưa ghé),
+                // nó sẽ dừng lại ngay lập tức và trả về phần tử đó.
+                const nextStop = schedule.stopTimes.find(stop =>
+                    !visitedStationIds.has(stop.stationId.toString()));
+
+                if (!nextStop)
+                    continue;
+
+                const expectedTime = getScheduleTimeToday(nextStop.arrivalTime); // "07:00" -> Date
+
+                // Ngưỡng báo động = Giờ dự kiến + 15 phút
+                const alertThreshold = new Date(expectedTime.getTime() + LATENESS_BUFFET_MS);
+
+                if (now > alertThreshold) {
+                    console.warn(`⚠️ Trip ${trip._id} trễ giờ tới trạm ${nextStop.stationId}`);
+
+                    await Alert.create({
+                        busId: trip.busId,
+                        driverId: trip.driverId,
+                        message: `Xe đang trễ hơn 15 phút so với lịch trình đến trạm kế tiếp.`,
+                        type: 'LATE'
+                    });
+
+                    io.to('receive_notification')
+                        // Phụ huynh có thể: Nhận cảnh báo nếu xe bị trễ
+                        .to(`trip_${trip._id}`)
+                        .emit('alert:new', {
+                            type: 'LATE',
+                            message: `Xe đang trễ hơn 15 phút so với lịch trình đến trạm kế tiếp.`,
+                            tripId: trip._id,
+                            busId: trip.busId
+                        });
+
+                    trip.isLateAlertSent = true;
+                    await trip.save();
+                }
+            }
+        } catch (error) {
+            console.error("Lỗi Cron Job:", error);
         }
     });
 
@@ -140,6 +221,79 @@ module.exports = (io) => {
 
             });
 
+            // Gửi tin nhắn cho tài xế hoặc phụ huynh
+            socket.on('chat:send_message', async (data) => {
+                // data = { receiverId: "...", content: "Con tôi hôm nay nghỉ nhé" }
+                let parsedData = data;
+                try {
+                    // Xử lý trường hợp client gửi lên dạng chuỗi JSON hoặc object
+                    if (typeof parsedData === 'string') {
+                        parsedData = JSON.parse(parsedData);
+                    }
+                    const { content, receiverId } = parsedData;
+                    const senderId = user.id;
+                    const senderRole = user.role;
+
+                    if (senderRole === 'Parent' || senderRole === 'Driver') {
+                        const newMessage = await Message.create({
+                            senderId: senderId,
+                            receiverId: null,
+                            content: content
+                        });
+
+                        io.to('receive_notification').emit('chat:receive_message', newMessage);
+                    }
+                    else if (senderRole === 'Admin' || senderRole === 'Manager') {
+                        const newMessage = await Message.create({
+                            senderId: senderId,
+                            receiverId: receiverId,
+                            content: content
+                        });
+
+                        io.to(`user:${receiverId}`).emit('chat:receive_message', newMessage);
+                    }
+                } catch (error) {
+                    console.error("Lỗi gửi tin nhắn:", error);
+                    socket.emit('chat:error', 'Không thể gửi tin nhắn');
+                }
+            });
+
+            socket.on('driver:send_alert', async (data) => {
+                // data = { type: 'SOS', message: 'Xe hỏng lốp!' }
+                try {
+                    const driverId = socket.user.id;
+
+                    // Tìm chuyến đi đang chạy của tài xế này (Source of Truth)
+                    // (Vì tài xế chỉ có thể lái 1 xe tại 1 thời điểm)
+                    const activeTrip = await Trip.findOne({
+                        driverId: driverId,
+                        status: 'IN_PROGRESS'
+                    });
+
+                    if (!activeTrip) {
+                        return socket.emit('alert:error', 'Bạn chưa bắt đầu chuyến đi nào.');
+                    }
+
+                    const newAlert = await Alert.create({
+                        busId: activeTrip.busId,
+                        driverId: driverId,
+                        type: data.type || 'SOS',
+                        message: data.message,
+                        timestamp: new Date()
+                    });
+
+                    io.to('receive_notification')
+                        .to(`trip_${activeTrip._id}`)
+                        .emit('alert:new', newAlert);
+
+                    // Phản hồi cho tài xế yên tâm :))
+                    socket.emit('alert:success', 'Đã gửi cảnh báo!');
+
+                } catch (error) {
+                    console.error("Lỗi SOS:", error);
+                }
+            });
+
             socket.on('disconnect', () => {
                 console.log(`Một NGƯỜI XEM đã ngắt kết nối: ${socket.id} (UserId: ${user.id})`); // Tieng viet cho de hieu
             });
@@ -160,7 +314,10 @@ module.exports = (io) => {
                     const tripId = data.tripId;
                     const busId = socket.bus.id;
 
-                    const trip = await Trip.findById(tripId);
+                    const trip = await Trip.findById(tripId).populate({
+                        path: 'routeId',
+                        populate: { path: 'orderedStops' } // Lấy coords các trạm
+                    });
 
                     if (!trip)
                         return socket.emit('trip:error', 'Trip ID không tồn tại.');
@@ -178,7 +335,23 @@ module.exports = (io) => {
                         await trip.save();
                     }
 
+                    // Cache data vào Socket để dùng sau lày hẹ hẹ (Lưu vào RAM)
                     socket.tripId = trip._id.toString();
+
+                    socket.routeStops = trip.routeId.orderedStops.map(stop => ({
+                        id: stop._id.toString(),
+                        name: stop.name,
+                        lat: stop.address.latitude,
+                        lng: stop.address.longitude
+                    }));
+
+                    // Sync trạng thái hiện tại từ DB vào Socket
+                    socket.trackingState = {
+                        nextStationIndex: trip.nextStationIndex || 0,
+                        hasNotifiedApproaching: trip.hasNotifiedApproaching || false,
+                        hasNotifiedArrived: trip.hasNotifiedArrived || false
+                    };
+
                     console.log(`Xe buýt ${busId} đã BẮT ĐẦU chuyến ${socket.tripId}`);
                     socket.emit('trip:started_successfully');
 
@@ -189,8 +362,11 @@ module.exports = (io) => {
                 }
             });
 
-            const MIN_DISTANCE_THRESHOLD = 0.005;
-            const DB_SAVE_INTERVAL_MS = 10000;
+            const MIN_DISTANCE_THRESHOLD = 0.005; // km
+            const DB_SAVE_INTERVAL_MS = 10000; // ms
+            const DISTANCE_APPROACHING = 0.1; // 100m: sắp tới
+            const DISTANCE_ARRIVED = 0.05;      // 50m: đã tới
+            const DISTANCE_DEPARTED = 0.05;    // Đi xa trạm cũ 50m: đã rời đi
 
             // QUAN TRỌNG: Không cho join bất kỳ phòng nào cả
             socket.on('driver:update_location', async (data) => {
@@ -202,7 +378,7 @@ module.exports = (io) => {
                 const newCoords = data.coords;
                 const currentTime = Date.now();
 
-                if (!validatedTripId)
+                if (!validatedTripId || !socket.routeStops)
                     return; // Bỏ qua nếu xe chưa bắt đầu chuyến (start_trip)
 
                 if (!socket.lastDbUpdatedTime)
@@ -239,90 +415,97 @@ module.exports = (io) => {
                     // await Location.saveHistory(busId, data.coords);
                     socket.prevCoords = newCoords;
                 }
-            });
 
-            // Da toi 1 tram
-            socket.on('driver:arrived_at_station', async (data) => {
-                const { stationId } = data;
-                const validatedTripId = socket.tripId;
+                // 🔥 LOGIC TÍNH TOÁN SẮP TỚI, TỚI, RỜI TRẠM
+                const state = socket.trackingState;
+                const stops = socket.routeStops;
 
-                if (!validatedTripId) {
-                    console.warn(`Xe buýt ${socket.bus.id} gửi sự kiện 'arrived' (đến trạm) nhưng chưa bắt đầu chuyến đi (start_trip). Bỏ qua.`);
-                    return;
+                // đi hết trạm skippp
+                if (state.nextStationIndex >= stops.length) return;
+
+                const targetStation = stops[state.nextStationIndex];
+
+                const distance = Haversine.distance(
+                    { latitude: newCoords.latitude, longitude: newCoords.longitude },
+                    { latitude: targetStation.lat, longitude: targetStation.lng }
+                );
+
+                if (distance <= DISTANCE_APPROACHING && !state.hasNotifiedApproaching) {
+                    io.to(`trip_${validatedTripId}`).emit('bus:approaching_station', {
+                        stationId: targetStation.id,
+                        message: "Xe buýt sắp đến trạm!"
+                    });
+
+                    state.hasNotifiedApproaching = true;
+                    await Trip.updateOne({ _id: validatedTripId }, { hasNotifiedApproaching: true })
+                        .catch((error) => {
+                            console.error(`Lỗi DB SẮP TỚI trạm ${targetStation.id}:`, error);
+                            socket.emit('trip:error', 'Lỗi server khi ghi nhận sắp tới trạm.');
+                        });
                 }
 
-                // Ve Logic that su co station do trong schedule cua trip khong:
-                // Chi can trong trip.studentStops co chua stationId thi di nhien la co station do.
-                // 
-                try {
-                    const updateResult = await Trip.updateOne(
+                if (distance <= DISTANCE_ARRIVED && !state.hasNotifiedArrived) {
+                    io.to(`trip_${validatedTripId}`).emit('bus:arrived_at_station', {
+                        stationId: targetStation.id,
+                        arrivalTime: new Date()
+                    });
+
+                    state.hasNotifiedArrived = true;
+
+                    await Trip.updateOne(
                         {
                             _id: validatedTripId,
 
-                            // Huong giai quyet logic tren
-                            'studentStops.stationId': stationId,
-
-                            // Va chua duoc them vao actualStopTimes
-                            'actualStopTimes.stationId': { $ne: stationId }
+                            // BUG SIÊU KHỦNG KHIẾP (không ghi nhận những trạm không có học sinh)
+                            // 'studentStops.stationId': targetStation.id,
+                            
+                            'actualStopTimes.stationId': { $ne: targetStation.id }
                         },
                         {
                             $push: {
                                 actualStopTimes: {
-                                    stationId: stationId,
+                                    stationId: targetStation.id,
                                     arrivalTime: new Date()
                                 }
+                            },
+                            $set: {
+                                hasNotifiedArrived: true
                             }
                         }
-                    );
-
-                    // Kiểm tra xem update có thành công không
-                    if (updateResult.modifiedCount > 0) {
-                        console.log(`Đã ghi nhận xe ${socket.bus.id} đến trạm ${stationId} (Hợp lệ)`);
-                    } else {
-                        console.warn(`Bỏ qua ghi nhận trạm ${stationId} cho chuyến ${validatedTripId} (Trạm không hợp lệ hoặc đã tồn tại)`);
-                    }
-                } catch (error) {
-                    console.error(`Lỗi CSDL khi ghi nhận ĐẾN trạm ${stationId}:`, error);
-                    socket.emit('trip:error', 'Lỗi server khi ghi nhận đến trạm.');
-                }
-            });
-
-            // Da roi 1 tram
-            socket.on('driver:departed_from_station', async (data) => {
-                const { stationId } = data;
-                const validatedTripId = socket.tripId;
-
-                if (!validatedTripId) {
-                    console.warn(`Xe buýt ${socket.bus.id} gửi sự kiện 'departed' (rời trạm) nhưng chưa bắt đầu chuyến đi (start_trip). Bỏ qua.`);
-                    return;
+                    ).catch((error) => {
+                        console.error(`Lỗi DB TỚI trạm ${targetStation.id}:`, error);
+                        socket.emit('trip:error', 'Lỗi server khi ghi nhận tới trạm.');
+                    });
                 }
 
-                try {
-                    const updateResult = await Trip.updateOne(
+                if (distance >= DISTANCE_DEPARTED && state.hasNotifiedArrived) {
+                    io.to(`trip_${validatedTripId}`).emit('bus:departed_from_station', {
+                        stationId: targetStation.id,
+                        departureTime: new Date()
+                    });
+
+                    state.nextStationIndex++;
+                    state.hasNotifiedApproaching = false;
+                    state.hasNotifiedArrived = false;
+
+                    await Trip.updateOne(
                         {
                             _id: validatedTripId,
-
-                            'actualStopTimes.stationId': stationId,
-
-                            // kỹ thuật gọi là "Idempotency" (tạm dịch: tính bất biến).
-                            // Nó đảm bảo rằng dù app của tài xế có gửi sự kiện departed 5 lần
-                            // (do lag, nhấn nhầm, retry...), server cũng chỉ cập nhật 1 lần duy nhất.
-                            // VD: Chỉ tìm phần tử mảng mà 'departureTime' chưa được set
-                            'actualStopTimes.departureTime': { $exists: false }
+                            'actualStopTimes.stationId': targetStation.id
                         },
                         {
                             $set: {
-                                'actualStopTimes.$.departureTime': new Date()
+                                'actualStopTimes.$.departureTime': new Date(),
+                                nextStationIndex: state.nextStationIndex,
+                                hasNotifiedApproaching: state.hasNotifiedApproaching,
+                                hasNotifiedArrived: state.hasNotifiedArrived
                             }
                         }
-                    );
-
-                    // Kiểm tra xem update có thành công không
-                    if (updateResult.modifiedCount > 0) {
-                        console.log(`Đã ghi nhận xe ${socket.bus.id} rời trạm ${stationId} (Hợp lệ)`);
-                    } else {
-                        console.warn(`Lỗi khi ghi nhận xe ${socket.bus.id} RỜI trạm ${stationId}:`);
-                    }
+                    )
+                        .catch((error) => {
+                            console.error(`Lỗi DB RỜI trạm ${targetStation.id}:`, error);
+                            socket.emit('trip:error', 'Lỗi server khi ghi nhận rời trạm.');
+                        });
 
                     // Auto absent voi nhung hoc sinh chua len xe
                     // Để cập nhật TẤT CẢ các học sinh thỏa mãn điều kiện, bắt buộc phải dùng arrayFilters.
@@ -336,10 +519,11 @@ module.exports = (io) => {
                             }
                         },
                         {
-                            arrayFilters: {
-                                'elem.stationId': stationId,
+                            // fix lỗi tự động báo vắng vì quên 2 ngoặc []
+                            arrayFilters: [{
+                                'elem.stationId': targetStation.id,
                                 'elem.action': 'PENDING'
-                            }
+                            }]
                         }
                     )
                         .then(updateResult => {
@@ -348,10 +532,10 @@ module.exports = (io) => {
                                 // Khong xai socket.to('room').emit() vi tai xe hoac xe buyt dang khong trong 'room' do.
                                 // io la toan server quan ly tat ca nen thong bao duoc
                                 // Note: Chua giai quyet duoc viec bao vang specific (cu the).
-                                console.log(`Đã tự động báo vắng ${updateResult.modifiedCount} học sinh tại trạm ${stationId}`);
+                                console.log(`Đã tự động báo vắng ${updateResult.modifiedCount} học sinh tại trạm ${targetStation.id}`);
                                 io.to(`trip_${validatedTripId}`).emit('trip:students_marked_absent',
                                     {
-                                        stationId: stationId,
+                                        stationId: targetStation.id,
                                         count: updateResult.modifiedCount
                                     });
                             }
@@ -359,11 +543,12 @@ module.exports = (io) => {
                         .catch(err => {
                             console.error(`Lỗi tự động báo vắng cho chuyến ${validatedTripId}:`, err);
                         });
-                } catch (error) {
-                    console.error(`Lỗi CSDL khi ghi nhận RỜI trạm ${stationId}:`, error);
-                    socket.emit('trip:error', 'Lỗi server khi ghi nhận rời trạm.');
                 }
             });
+
+            // ❌ XÓA: driver:approaching_station  ---\
+            // ❌ XÓA: driver:arrived_at_station   ------> put in event driver:update_location
+            // ❌ XÓA: driver:departed_from_station---/
 
             // Ket thuc chuyen
             // Tài xế bấm nút KẾT THÚC
@@ -404,7 +589,6 @@ module.exports = (io) => {
                     socket.emit('trip:error', 'Lỗi server khi kết thúc chuyến đi.');
                 }
             });
-
             socket.on('disconnect', () => {
                 console.log(`Một XE BUÝT đã ngắt kết nối: ${socket.id} (BusId: ${bus.id})`); // Tieng viet cho de hieu
             });

@@ -29,6 +29,7 @@ const tripSchema = new mongoose.Schema({
     },
 
     // **TỐI ƯU: Denormalization (Phi chuẩn hóa) để tăng hiệu suất**
+    routeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Route', required: true },
     driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     busId: { type: mongoose.Schema.Types.ObjectId, ref: 'Bus', required: true },
     direction: {
@@ -52,6 +53,19 @@ const tripSchema = new mongoose.Schema({
         enum: ['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'],
         default: 'NOT_STARTED'
     },
+    isLateAlertSent: {
+        type: Boolean,
+        default: false,
+        select: false
+    },
+    
+    // ⚠️: Lưu trạm mục tiêu hiện tại
+    nextStationIndex: { type: Number, default: 0 }, // Đang đi tới trạm thứ mấy trong lộ trình
+    
+    // Cờ đánh dấu để tránh spam thông báo
+    hasNotifiedApproaching: { type: Boolean, default: false }, // Đã báo "Sắp tới" (100m)???
+    hasNotifiedArrived: { type: Boolean, default: false },      // Đã báo "Đã tới" (50m)???
+
     studentStops: [studentStopSchema], // Theo dõi trạng thái của từng học sinh tại mỗi trạm
     actualStopTimes: [actualStopTimeSchema] // Theo dõi thời gian thực tế xe đến mỗi trạm
 });
@@ -89,6 +103,7 @@ tripSchema.pre('validate', async function (next) {
         this.driverId = schedule.driverId;
         this.busId = schedule.busId;
         this.direction = schedule.direction;
+        this.routeId = schedule.routeId;
 
         const initialStudentStops = [];
 

@@ -3,43 +3,45 @@ const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const factory = require('../utils/handlerFactory');
 const scheduleModel = require('../models/schedule.model');
-const tripModel = require('../models/trip.model');
 const studentModel = require('../models/student.model');
 const NotificationModel = require('../models/notification.model')
 
 // Sử dụng lại factory cho các hành động đơn giản
 exports.getAllTrips = factory.selectAll(Trip);
-exports.getTrip = factory.selectOne(Trip);
 exports.deleteTrip = factory.deleteOne(Trip);
+exports.createTrip = factory.createOne(Trip);
 
-/**
- * Tạo một chuyến đi mới.
- * Logic phức tạp hơn việc chỉ tạo document đơn thuần.
- * Ví dụ: Có thể cần kiểm tra xem lịch trình có đang hoạt động không,
- * hoặc gửi thông báo khi tạo chuyến đi.
- */
-exports.createTrip = catchAsync(async (req, res, next) => {
-    try {
-        // Sử dụng Trip.create để Mongoose tự động gọi new và save()
-        // Hook pre('save') sẽ được kích hoạt tự động
-        const newTrip = await Trip.create(req.body);
+exports.getTrip = catchAsync(async (req, res, next) => {
 
-        res.status(201).json({
-            status: 'success',
-            data: newTrip,
-        });
-    } catch (error) {
-        // Bắt lỗi validation từ Mongoose (nếu có)
-        if (error.name === 'ValidationError') {
-            return next(new AppError(error.message, 400));
-        }
-        next(error); // Chuyển các lỗi khác (ví dụ: lỗi từ pre-save hook) đi tiếp
+    const user = req.user;
+    let query = { _id: req.params.id };
+
+    if (req.user.role === 'Parent') {
+        const childrenIds = (await studentModel.find({ parentId: user.id }).select('_id')).map(s => s._id);
+
+        // Check xem có con mình ở trong trip đó không, thêm đk query
+        query['studentStops.studentId'] = { $in: childrenIds };
     }
+    const trip = await Trip.findOne(query)
+        .populate({
+            path: 'scheduleId',
+            select: 'stopTimes'
+        })
+        .populate({
+            path: 'routeId',
+            select: 'name shape distanceMeters durationSeconds'
+        });
+
+    if (!trip)
+        return next(new AppError('Không tìm thấy chuyến đi', 404));
+
+    res.status(200).json({
+        status: 'success',
+        data: trip
+    });
 });
 
 /**
- * Cập nhật một chuyến đi.
- * Có thể có các quy tắc nghiệp vụ đặc biệt, ví dụ: không cho phép
  * thay đổi tài xế/xe buýt khi chuyến đi đang diễn ra.
  */
 exports.updateTrip = catchAsync(async (req, res, next) => {
@@ -55,7 +57,7 @@ exports.updateTrip = catchAsync(async (req, res, next) => {
     }
 
     // Tối ưu: Thay vì gọi lại factory (sẽ query lại DB),
-    // chúng ta cập nhật trực tiếp trip đã tìm thấy.
+    // Update trực tiếp trip đã tìm thấy.
     Object.assign(trip, req.body);
 
     // trip.save() sẽ kích hoạt hook pre('save') để kiểm tra xung đột
@@ -116,7 +118,7 @@ exports.getMySchedule = catchAsync(async (req, res, next) => {
 exports.getStudents = catchAsync(async (req, res, next) => {
     const tripId = req.params.id;
 
-    const trip = await tripModel.findById(tripId).populate({
+    const trip = await Trip.findById(tripId).populate({
         path: 'studentStops.studentId',
         select: 'name grade'
     }).populate({
@@ -149,7 +151,7 @@ const updateStudentStatusInTrip = (action) => catchAsync(async (req, res, next) 
     // Sử dụng findOneAndUpdate để tìm và cập nhật trong một thao tác (atomic)
     // Điều kiện: tìm đúng trip và đúng studentId trong mảng studentStops
     // Cập nhật: set action và timestamp cho studentStop tương ứng
-    const updatedTrip = await tripModel.findOneAndUpdate(
+    const updatedTrip = await Trip.findOneAndUpdate(
         {
             _id: tripId,
             'studentStops.studentId': studentId
@@ -233,7 +235,7 @@ const updateStudentStatusInTrip = (action) => catchAsync(async (req, res, next) 
  * Dựa vào `direction` của chuyến đi để quyết định trạng thái là 'PICKED_UP' hay 'DROPPED_OFF'.
  */
 exports.checkIn = catchAsync(async (req, res, next) => {
-    const trip = await tripModel.findById(req.params.id).select('direction');
+    const trip = await Trip.findById(req.params.id).select('direction');
     if (!trip) {
         return next(new AppError('Trip not found.', 404));
     }

@@ -15,7 +15,8 @@ const notificationSchema = new mongoose.Schema({
         required: true
     }
 }, {
-    timestamps: true // Adds createdAt and updatedAt timestamps
+    timestamps: { createdAt: true, updatedAt: false }, // Adds createdAt and updatedAt timestamps
+    versionKey: false
 });
 
 module.exports = mongoose.model("Notification", notificationSchema);
