@@ -3,6 +3,7 @@ const AppError = require('../utils/appError');
 const User = require('../models/user.model');
 const Bus = require('../models/bus.model');
 const Location = require('../models/location.model');
+const Station = require('../models/station.model');
 const Trip = require('../models/trip.model');
 const Student = require('../models/student.model');
 const { Haversine } = require('../utils/haversine');
@@ -82,6 +83,9 @@ module.exports = (io) => {
             }).populate({
                 path: 'scheduleId',
                 select: 'stopTimes'
+            }).populate({
+                path: 'busId',
+                select: 'licensePlate'
             });
 
             for (const trip of inProgressTrips) {
@@ -112,16 +116,19 @@ module.exports = (io) => {
 
                 const expectedTime = getScheduleTimeToday(nextStop.arrivalTime); // "07:00" -> Date
 
-                // Ngưỡng báo động = Giờ dự kiến + 15 phút
+                // Ngưỡng báo động = Giờ dự kiến + 5 phút
                 const alertThreshold = new Date(expectedTime.getTime() + LATENESS_BUFFET_MS);
 
                 if (now > alertThreshold) {
+                    const station = await Station.findById(nextStop.stationId).select('name');
+                    const stationName = station ? station.name : 'Trạm không xác định';
+
                     console.warn(`⚠️ Trip ${trip._id} trễ giờ tới trạm ${nextStop.stationId}`);
 
                     await Alert.create({
                         busId: trip.busId,
                         driverId: trip.driverId,
-                        message: `Xe đang trễ hơn 15 phút so với lịch trình đến trạm kế tiếp.`,
+                        message: `Xe ${trip.busId.licensePlate} đang trễ hơn 5 phút so với lịch trình đến trạm ${stationName}.`,
                         type: 'LATE'
                     });
 
@@ -130,7 +137,7 @@ module.exports = (io) => {
                         .to(`trip_${trip._id}`)
                         .emit('alert:new', {
                             type: 'LATE',
-                            message: `Xe đang trễ hơn 15 phút so với lịch trình đến trạm kế tiếp.`,
+                            message: `Xe ${trip.busId.licensePlate} đang trễ hơn 5 phút so với lịch trình đến trạm ${stationName}.`,
                             tripId: trip._id,
                             busId: trip.busId
                         });
@@ -458,7 +465,7 @@ module.exports = (io) => {
 
                             // BUG SIÊU KHỦNG KHIẾP (không ghi nhận những trạm không có học sinh)
                             // 'studentStops.stationId': targetStation.id,
-                            
+
                             'actualStopTimes.stationId': { $ne: targetStation.id }
                         },
                         {
