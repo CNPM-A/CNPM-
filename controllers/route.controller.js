@@ -58,13 +58,13 @@ exports.createRoute = catchAsync(async (req, res, next) => {
             }
         );
 
-        console.log("🔍 ORS Response Data:", JSON.stringify(orsResponse.data, null, 2));
+        // Debug thì dùng
+        // console.log("🔍 ORS Response Data:", JSON.stringify(orsResponse.data, null, 2));
 
         // ORS trả về GeoJSON FeatureCollection
         const feature = orsResponse.data.features[0];
         const geometry = feature.geometry; // Chứa coordinates
         const properties = feature.properties; // Chứa distance, duration
-        console.log(geometry, '\n', properties);
 
         // Lưu vào DB
         // KHÔNG CẦN DECODE: ORS trả về coordinates chuẩn
