@@ -33,6 +33,7 @@ export default function Layout() {
     if (location.pathname.includes('dashboard')) return 'Dashboard';
     if (location.pathname.includes('tracking')) return 'Live Tracking';
     if (location.pathname.includes('notifications')) return 'Notifications';
+    if (location.pathname.includes('profile')) return 'My Profile';
     return 'School Bus';
   };
 
@@ -67,6 +68,20 @@ export default function Layout() {
 
         {/* User Profile & Logout */}
         <div className="p-4 border-t border-slate-100 space-y-2 bg-slate-50/50">
+          <NavLink
+            to="/parent/profile"
+            onClick={() => setIsSidebarOpen(false)}
+            className={({ isActive }) =>
+                `w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors text-sm font-medium ${
+                isActive
+                    ? 'bg-orange-100 text-orange-700'
+                    : 'text-slate-600 hover:bg-slate-100'
+                }`
+            }
+          >
+            <UserIcon className="w-4 h-4" />
+            My Profile
+          </NavLink>
           <button
             onClick={() => authService.logout()}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-red-600 hover:bg-red-50 rounded-xl transition-colors text-sm font-medium"

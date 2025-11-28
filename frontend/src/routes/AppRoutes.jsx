@@ -1,45 +1,33 @@
 // src/routes/AppRoutes.jsx
 import React, { Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import PageLayout from "../components/layout/pagelayout";
+import PageLayout from "../components/layout/PageLayout";
 import ParentLayout from "../components/layout/ParentLayout";
 
 // --- Lazy loaded pages (one import per file) ---
 // Parent pages
 const ParentDashboard = lazy(() => import("../pages/parent/ParentDashboard"));
-// ParentProfile removed
 const ParentTracking = lazy(() => import("../pages/parent/ParentTracking"));
-const ParentNotifications = lazy(() =>
-  import("../pages/parent/ParentNotifications")
-);
+const ParentNotifications = lazy(() => import("../pages/parent/ParentNotifications"));
+const ParentProfile = lazy(() => import("../pages/parent/ParentProfile"));
 const Login_Parents = lazy(() => import("../pages/parent/Login_Parents"));
 
 // Driver pages
 const DriverDashboard = lazy(() => import("../pages/driver/DriverDashboard"));
 const DriverFeatures = lazy(() => import("../pages/driver/DriverFeatures"));
 const DriverContacts = lazy(() => import("../pages/driver/DriverContacts"));
-const DriverDailySchedule = lazy(() =>
-  import("../pages/driver/DriverDailySchedule")
-);
+const DriverDailySchedule = lazy(() => import("../pages/driver/DriverDailySchedule"));
 const DriverOperations = lazy(() => import("../pages/driver/DriverOperations"));
 
 // Manager pages
-const ManagerDashboard = lazy(() =>
-  import("../pages/manager/ManagerDashboard")
-);
+const ManagerDashboard = lazy(() => import("../pages/manager/ManagerDashboard"));
 const ManagerFeatures = lazy(() => import("../pages/manager/ManagerFeatures"));
 const ManagerContacts = lazy(() => import("../pages/manager/ManagerContacts"));
 const Reports = lazy(() => import("../pages/manager/Reports"));
-const CatalogManagement = lazy(() =>
-  import("../pages/manager/CatalogManagement")
-);
-const ScheduleManagement = lazy(() =>
-  import("../pages/manager/ScheduleManagement")
-);
+const CatalogManagement = lazy(() => import("../pages/manager/CatalogManagement"));
+const ScheduleManagement = lazy(() => import("../pages/manager/ScheduleManagement"));
 const BusTracking = lazy(() => import("../pages/manager/BusTracking"));
-const SendNotifications = lazy(() =>
-  import("../pages/manager/SendNotifications")
-);
+const SendNotifications = lazy(() => import("../pages/manager/SendNotifications"));
 
 // Optional: a simple fallback while pages load
 const Loader = () => (
@@ -65,9 +53,9 @@ export default function AppRoutes() {
           <Route path="/parent" element={<ParentLayout />}>
             <Route path="" element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<ParentDashboard />} />
-            {/* <Route path="profile" element={<ParentProfile />} /> */}
             <Route path="tracking" element={<ParentTracking />} />
             <Route path="notifications" element={<ParentNotifications />} />
+            <Route path="profile" element={<ParentProfile />} />
           </Route>
 
           {/* Root layout for other roles or generic pages */}

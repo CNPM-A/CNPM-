@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MenuIcon, BellIcon, SearchIcon, UserIcon } from './Icons';
 
 interface HeaderProps {
@@ -7,6 +8,7 @@ interface HeaderProps {
 }
 
 export default function Header({ title, onMenuClick }: HeaderProps) {
+  const navigate = useNavigate();
   return (
     <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 lg:px-8 z-20 sticky top-0">
       {/* Left: Hamburger (Mobile) & Title */}
@@ -37,7 +39,11 @@ export default function Header({ title, onMenuClick }: HeaderProps) {
       {/* Right: Actions */}
       <div className="flex items-center gap-2 sm:gap-4">
         {/* Notifications */}
-        <button className="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors">
+        {/* Notifications */}
+        <button 
+          onClick={() => navigate('/parent/notifications')}
+          className="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors"
+        >
           <BellIcon className="w-6 h-6" />
           <span className="absolute top-2 right-2 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
         </button>
