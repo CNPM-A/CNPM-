@@ -4,6 +4,7 @@ import { BusIcon, DashboardIcon, MapIcon, BellIcon, UserIcon, LogOutIcon } from 
 import authService from '../../services/authService';
 import Header from '../parent/Header';
 import Footer from '../parent/Footer';
+import logo from '../../assets/logo.jpg';
 
 const SidebarItem = ({ to, icon: Icon, label, onClick }: { to: string; icon: any; label: string, onClick?: () => void }) => {
   return (
@@ -13,7 +14,7 @@ const SidebarItem = ({ to, icon: Icon, label, onClick }: { to: string; icon: any
       className={({ isActive }) =>
         `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
           isActive
-            ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/30'
+            ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30'
             : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
         }`
       }
@@ -52,14 +53,8 @@ export default function Layout() {
         }`}
       >
         {/* Logo */}
-        <div className="flex items-center gap-3 px-6 h-16 border-b border-slate-100">
-          <div className="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center text-white shadow-md shadow-brand-500/20">
-            <BusIcon className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-slate-900 leading-none">SmartBus</h1>
-            <p className="text-[10px] text-slate-500 font-medium mt-0.5 uppercase tracking-wide">Parent Portal</p>
-          </div>
+        <div className="flex items-center justify-center h-20 border-b border-slate-100">
+             <img src={logo} alt="Smart School Bus" className="h-[50px] object-contain" />
         </div>
 
         {/* Navigation */}
