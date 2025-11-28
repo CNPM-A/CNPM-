@@ -55,7 +55,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" style={{ height: 'calc(100vh - 80px)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -135,10 +135,10 @@ export default function Dashboard() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
         
         {/* Left Column: Quick Actions & Schedule */}
-        <div className="space-y-6 lg:col-span-1">
+        <div className="space-y-6 lg:col-span-1 overflow-y-auto pr-2 h-full">
             
             {/* Quick Actions */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
@@ -215,7 +215,7 @@ export default function Dashboard() {
         </div>
 
         {/* Right Column: Map (Takes 2/3 width) */}
-        <div className="lg:col-span-2 min-h-[500px] lg:h-auto bg-white rounded-2xl p-2 shadow-sm border border-slate-100 overflow-hidden relative flex flex-col">
+        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden relative flex flex-col h-full">
             <div className="absolute top-4 left-4 z-[400] bg-white/95 backdrop-blur px-4 py-2 rounded-xl shadow-md border border-slate-200">
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Live Location</span>
                 <span className="text-sm font-bold text-slate-900">District 1, Ho Chi Minh City</span>

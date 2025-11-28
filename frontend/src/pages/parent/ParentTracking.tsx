@@ -87,7 +87,7 @@ export default function Tracking() {
 
       <div className="flex flex-col lg:flex-row gap-4 flex-1 overflow-hidden">
         {/* Map */}
-        <div className="flex-1 rounded-2xl overflow-hidden shadow-sm border border-slate-200 relative z-0">
+        <div className="flex-1 rounded-2xl overflow-hidden shadow-sm border border-slate-200 relative z-0 h-full">
              <MapContainer 
                 center={[busLocation.lat, busLocation.lng]} 
                 zoom={15} 
