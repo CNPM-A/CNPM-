@@ -11,6 +11,7 @@ const stationRoute = require("./routes/station.route");
 const userRoute = require("./routes/user.route");
 const studentRoute = require("./routes/student.route");
 const notificationRoute = require("./routes/notification.route");
+const messageRoute = require("./routes/message.route");
 require("dotenv").config();
 
 const User = require("./models/user.model");
@@ -23,6 +24,7 @@ const Schedule = require("./models/schedule.model");
 const Station = require("./models/station.model");
 const Student = require("./models/student.model");
 const Trip = require("./models/trip.model");
+const Message = require("./models/message.model");
 const AppError = require("./utils/appError");
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
@@ -99,7 +101,8 @@ const models = {
     schedules: Schedule,
     stations: Station,
     students: Student,
-    trips: Trip
+    trips: Trip,
+    messages: Message
 }
 
 // Middleware to get the correct model based on the URL parameter
@@ -122,6 +125,7 @@ app.use("/api/v1/stations", stationRoute);
 app.use("/api/v1/users", userRoute);
 app.use("/api/v1/students", studentRoute);
 app.use("/api/v1/notifications", notificationRoute);
+app.use("/api/v1/messages", messageRoute);
 
 // Route động (generic) phải được đăng ký SAU CÙNG
 app.use("/api/v1/:models", getModel, modelRoute);
