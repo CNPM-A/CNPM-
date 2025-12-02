@@ -36,9 +36,11 @@ const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 const { DB_URL, PORT } = process.env;
 const port = PORT || 3000;
 
+const allowed = [ CLIENT_URL, 'http:localhost:5500', 'http://127.0.0.1:5500'];
+
 // CORS cho HTTP API
 app.use(cors({
-    origin: CLIENT_URL, // domain frontend
+    origin: allowed, // domain frontend
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true // Cho phép cookie token
 }));
@@ -49,7 +51,7 @@ const http = require('http');
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: CLIENT_URL,
+        origin: allowed,
         methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
         credentials: true
     }

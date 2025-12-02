@@ -11,6 +11,7 @@ const Message = require('../models/message.model');
 const cron = require('node-cron');
 const getScheduleTimeToday = require('../utils/getScheduleTimeToday');
 const Alert = require('../models/alert.model');
+const turf = require('@turf/turf');
 
 /**
  * Initializes Socket.IO event listeners and middleware.
@@ -345,6 +346,14 @@ module.exports = (io) => {
                     // Cache data vào Socket để dùng sau lày hẹ hẹ (Lưu vào RAM)
                     socket.tripId = trip._id.toString();
 
+                    socket.driverId = trip.driverId;
+
+                    socket.routeName = trip.routeId.name;
+
+                    socket.routeShape = trip.routeId.shape;
+
+                    socket.isOffRoute = false;
+
                     socket.routeStops = trip.routeId.orderedStops.map(stop => ({
                         id: stop._id.toString(),
                         name: stop.name,
@@ -374,6 +383,7 @@ module.exports = (io) => {
             const DISTANCE_APPROACHING = 0.1; // 100m: sắp tới
             const DISTANCE_ARRIVED = 0.05;      // 50m: đã tới
             const DISTANCE_DEPARTED = 0.05;    // Đi xa trạm cũ 50m: đã rời đi
+            const ROUTE_DEVIATION_THRESHOLD = 50; // m
 
             // QUAN TRỌNG: Không cho join bất kỳ phòng nào cả
             socket.on('driver:update_location', async (data) => {
@@ -384,6 +394,11 @@ module.exports = (io) => {
                 const validatedTripId = socket.tripId;
                 const newCoords = data.coords;
                 const currentTime = Date.now();
+
+                if (!newCoords || (typeof newCoords !== 'object')) {
+                    console.warn(`Invalid coords payload from bus ${busId}: missing coords`);
+                    return;
+                }
 
                 if (!validatedTripId || !socket.routeStops)
                     return; // Bỏ qua nếu xe chưa bắt đầu chuyến (start_trip)
@@ -405,6 +420,36 @@ module.exports = (io) => {
 
                 // Chỉ xử lý và gửi đi khi tọa độ thực sự thay đổi
                 if (Haversine.distance(socket.prevCoords, newCoords) > MIN_DISTANCE_THRESHOLD) {
+
+                    if (socket.routeShape && socket.routeShape.coordinates) {
+
+                        // Kiểm tra xe có đang lệch tuyến không thông qua Turf pointToLineDistance
+                        const busPoint = turf.point([newCoords.longitude, newCoords.latitude]);
+                        const routeLine = turf.lineString(socket.routeShape.coordinates);
+                        const deviationDist = turf.pointToLineDistance(busPoint, routeLine, { units: "meters" });
+                        if (deviationDist > ROUTE_DEVIATION_THRESHOLD) {
+                            if (!socket.isOffRoute) {
+                                console.warn(`⚠️ Xe ${busId} bắt đầu chệch tuyến (${deviationDist.toFixed(0)}m)`);
+                                const alertData = {
+                                    busId: busId,
+                                    driverId: socket.driverId,
+                                    message: `Cảnh báo: Xe đã đi chệch tuyến đường ${deviationDist.toFixed(0)}m!`,
+                                    type: 'OFF_ROUTE'
+                                };
+
+                                Alert.create(alertData).catch(console.error);
+
+                                io.to('receive_notification').to(`trip_${validatedTripId}`).emit('alert:new', alertData);
+                                socket.isOffRoute = true;
+                            }
+                        }
+                        else {
+                            if (socket.isOffRoute) {
+                                console.log(`✅ Xe ${busId} đã quay lại đúng tuyến.`);
+                                socket.isOffRoute = false;
+                            }
+                        }
+                    }
 
                     // Uu tien 1
                     // Gui cho nhung ai dang trong phong live-map VA dang coi map
