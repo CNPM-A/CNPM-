@@ -1,0 +1,6 @@
+.env
+node_modules/
+test-gps.html
+guisukientoitram.js
+parent.html
+test_simulation.html
