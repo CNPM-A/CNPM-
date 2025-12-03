@@ -380,9 +380,9 @@ module.exports = (io) => {
 
             const MIN_DISTANCE_THRESHOLD = 0.005; // km
             const DB_SAVE_INTERVAL_MS = 10000; // ms
-            const DISTANCE_APPROACHING = 0.1; // 100m: sắp tới
-            const DISTANCE_ARRIVED = 0.05;      // 50m: đã tới
-            const DISTANCE_DEPARTED = 0.05;    // Đi xa trạm cũ 50m: đã rời đi
+            const DISTANCE_APPROACHING = 0.3; // 300m: sắp tới
+            const DISTANCE_ARRIVED = 0.2;      // 200m: đã tới
+            const DISTANCE_DEPARTED = 0.2;    // Đi xa trạm cũ 200m: đã rời đi
             const ROUTE_DEVIATION_THRESHOLD = 50; // m
 
             // QUAN TRỌNG: Không cho join bất kỳ phòng nào cả
@@ -566,7 +566,7 @@ module.exports = (io) => {
 
                     // Auto absent voi nhung hoc sinh chua len xe
                     // Để cập nhật TẤT CẢ các học sinh thỏa mãn điều kiện, bắt buộc phải dùng arrayFilters.
-                    Trip.updateMany(
+                    Trip.updateOne(
                         {
                             _id: validatedTripId
                         },
