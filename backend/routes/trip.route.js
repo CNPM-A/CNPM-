@@ -1,5 +1,8 @@
 const express = require('express');
 const tripController = require('../controllers/trip.controller');
+// Config lưu vào RAM (Multer)
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage() });
 const { authenticateToken, restrictTo } = require('../controllers/auth.controller');
 
 const route = express.Router();
@@ -42,6 +45,16 @@ route.patch(
     '/:id/mark-absent',
     restrictTo('Driver'),
     tripController.markAsAbsent
+);
+
+route.post(
+    '/:id/check-in-face',
+    // Nhờ Middleware dưới đây mới có data req.file (req.file.buffer, req.file.originalname,...)
+    // .single(): nhận được 1 file thoi
+    // 'image': Là tên của field (trường) trong form-data mà client dùng để gửi file.
+    // <input type="file" name="image">
+    upload.single('image'),
+    tripController.checkInWithFace
 );
 
 route.get(
