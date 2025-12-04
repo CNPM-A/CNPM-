@@ -1,0 +1,21 @@
+# giống express
+flask
+
+# CORS
+flask-cors
+
+# Phát hiện khuôn mặt: Tìm xem trong ảnh có mặt người không.
+# Mã hóa (Encoding): Chuyển khuôn mặt thành một mảng 128 số thực (vectơ đặc trưng) để so sánh.
+# So sánh: Tính khoảng cách giữa 2 khuôn mặt để biết có phải cùng 1 người không.
+face_recognition
+
+# Xử lý matrics
+numpy
+
+# Phiên bản "không đầu" (headless) của OpenCV - thư viện Thị giác máy tính (Computer Vision).
+opencv-python-headless
+
+# WSGI HTTP Server (Web Server Gateway Interface) dành cho môi trường Production.
+# Khi deploy lên Render, cần để quản lý các tiến trình (workers),
+# giúp server Python chịu tải tốt hơn, xử lý nhiều request cùng lúc mà không bị sập.
+gunicorn

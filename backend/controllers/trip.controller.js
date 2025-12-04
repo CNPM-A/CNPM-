@@ -4,7 +4,10 @@ const AppError = require('../utils/appError');
 const factory = require('../utils/handlerFactory');
 const scheduleModel = require('../models/schedule.model');
 const studentModel = require('../models/student.model');
-const NotificationModel = require('../models/notification.model')
+const NotificationModel = require('../models/notification.model');
+const axios = require('axios');
+const FormData = require('form-data');
+const FaceData = require('../models/faceData.model');
 
 // Sử dụng lại factory cho các hành động đơn giản
 exports.getAllTrips = factory.selectAll(Trip);
@@ -254,3 +257,67 @@ exports.checkIn = catchAsync(async (req, res, next) => {
 });
 
 exports.markAsAbsent = updateStudentStatusInTrip('ABSENT');
+
+exports.checkInWithFace = catchAsync(async (req, res, next) => {
+    if (!req.file)
+        return next(new AppError('Vui lòng gửi ảnh để nhận diện.', 400));
+
+    const trip = await Trip.findById(req.params.id).select('direction studentStops');
+    if (!trip) {
+        return next(new AppError('Trip not found.', 404));
+    }
+
+    const expectedStudentIds = trip.studentStops.map(s => s.studentId);
+
+    const knownFacesData = await FaceData.find({
+        studentId: { $in: expectedStudentIds }
+    })
+        .select('studentId encoding');
+
+    if (knownFacesData.length === 0) {
+        return next(new AppError('Không tìm thấy dữ liệu FaceID của học sinh nào trong chuyến đi này. Vui lòng đảm bảo học sinh đã đăng ký FaceID và thuộc chuyến đi hiện tại.', 400));
+    }
+
+    // Python cần format:List of { studentId: "...", encoding: [...] }
+    const knownFacesList = knownFacesData.map(face => ({
+        studentId: face.studentId.toString(),
+        encoding: face.encoding
+    }));
+
+    const formData = new FormData();
+    formData.append('file', req.file.buffer, req.file.originalname);
+    // '[{"studentId":"123", "encoding": [...]}]'
+    formData.append('known_faces', JSON.stringify(knownFacesList));
+
+    const PYTHON_URL = process.env.PYTHON_SERVICE_URL || 'http://localhost:5000';
+
+    let studentId;
+    try {
+        const response = await axios.post(`${PYTHON_URL}/recognize`, formData, {
+            headers: {
+                ...formData.getHeaders() // Header multipart + boundary
+            }
+        });
+
+        studentId = response.data.data.studentId;
+
+    } catch (error) {
+        // Nếu lỗi đến từ service Python (có response trả về)
+        if (error.response && error.response.data) {
+            // Service Python có thể trả về lỗi với key là 'error' hoặc 'message'
+            const errorMessage = error.response.data.error || error.response.data.message;
+            if (errorMessage) {
+                // Trả về lỗi cụ thể từ service Python với đúng status code của nó
+                return next(new AppError(errorMessage, error.response.status));
+            }
+        }
+
+        // Nếu là lỗi khác (VD: không kết nối được, timeout, response không có message/error,...)
+        return next(new AppError('Không thể kết nối hoặc dịch vụ AI gặp lỗi không xác định.', 500));
+    }
+    req.body.studentId = studentId;
+
+    const action = trip.direction === 'PICK_UP' ? 'PICKED_UP' : 'DROPPED_OFF';
+
+    return updateStudentStatusInTrip(action)(req, res, next);
+});
