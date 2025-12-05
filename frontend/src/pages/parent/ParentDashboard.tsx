@@ -20,6 +20,8 @@ export default function Dashboard() {
   const [student, setStudent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [evidenceUrl, setEvidenceUrl] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -105,8 +107,24 @@ export default function Dashboard() {
             <div>
                 <h3 className="text-lg font-bold text-slate-900">{student?.name || "Student Name"}</h3>
                 <p className="text-sm text-slate-500">{student?.class || "Class 5A"} • {student?.school || "Primary School"}</p>
-                <div className="mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                    On Bus - Route #101
+                <div className="mt-2 flex items-center gap-2 flex-wrap">
+                  <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                      On Bus - Route #101
+                  </div>
+                  {student?.evidenceUrl && student?.status === 'PICKED_UP' && (
+                    <button
+                      onClick={() => {
+                        setEvidenceUrl(student.evidenceUrl);
+                        setShowPhotoModal(true);
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200 transition-colors"
+                    >
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      Xem ảnh check-in
+                    </button>
+                  )}
                 </div>
             </div>
         </div>
@@ -263,6 +281,44 @@ export default function Dashboard() {
         </div>
 
       </div>
+
+      {/* Photo Modal */}
+      {showPhotoModal && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowPhotoModal(false)}
+        >
+          <div 
+            className="bg-white rounded-2xl p-6 max-w-2xl w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-slate-900">Ảnh Check-in</h3>
+              <button
+                onClick={() => setShowPhotoModal(false)}
+                className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+              >
+                <svg className="w-5 h-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="relative">
+              <img 
+                src={evidenceUrl} 
+                alt="Student Check-in Evidence" 
+                className="w-full h-auto rounded-xl object-contain max-h-[70vh]"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x300?text=Image+Not+Available';
+                }}
+              />
+            </div>
+            <p className="text-sm text-slate-500 mt-4 text-center">
+              Ảnh chụp khi học sinh lên xe
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
