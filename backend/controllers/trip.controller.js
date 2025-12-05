@@ -8,6 +8,7 @@ const NotificationModel = require('../models/notification.model');
 const axios = require('axios');
 const FormData = require('form-data');
 const FaceData = require('../models/faceData.model');
+const { uploadToCloudinary } = require('../utils/cloudinary');
 
 // Sử dụng lại factory cho các hành động đơn giản
 exports.getAllTrips = factory.selectAll(Trip);
@@ -154,7 +155,7 @@ exports.getStudents = catchAsync(async (req, res, next) => {
  */
 const updateStudentStatusInTrip = (action) => catchAsync(async (req, res, next) => {
     const tripId = req.params.id;
-    const { studentId, stationId } = req.body;
+    const { studentId, stationId, evidenceUrl } = req.body;
 
     if (!studentId) {
         return next(new AppError("Please provide a studentId.", 400));
@@ -174,7 +175,9 @@ const updateStudentStatusInTrip = (action) => catchAsync(async (req, res, next) 
                 'studentStops.$.stationId': stationId,
                 'studentStops.$.action': action,
 
-                'studentStops.$.timestamp': new Date()
+                'studentStops.$.timestamp': new Date(),
+
+                ...(evidenceUrl && { 'studentStops.$.evidenceUrl': evidenceUrl })
             }
         },
         {
@@ -201,7 +204,8 @@ const updateStudentStatusInTrip = (action) => catchAsync(async (req, res, next) 
     // (Như cũ - Báo cho live-map biết trạng thái đã thay đổi)
     req.io.to(`trip_${updatedTrip._id}`).emit('student:checked_in', {
         studentId: studentId,
-        action: action
+        action: action,
+        evidenceUrl: evidenceUrl || null
     });
 
     studentModel.findById(studentId).select('name parentId')
@@ -223,13 +227,15 @@ const updateStudentStatusInTrip = (action) => catchAsync(async (req, res, next) 
             NotificationModel.create({
                 recipientId: student.parentId,
                 contextStudentId: studentId,
-                message: message
+                message: message,
+                evidenceUrl: evidenceUrl
             });
 
             req.io.to(`user:${student.parentId}`).emit(`notification:new`, {
                 message: message,
                 studentId: studentId,
-                action: action
+                action: action,
+                evidenceUrl: evidenceUrl || null
             });
         })
         .catch(err => console.error('Lỗi lưu notification:', err));
@@ -292,15 +298,19 @@ exports.checkInWithFace = catchAsync(async (req, res, next) => {
     const PYTHON_URL = process.env.PYTHON_SERVICE_URL || 'http://localhost:5000';
 
     let studentId;
+    let evidenceUrl;
     try {
-        const response = await axios.post(`${PYTHON_URL}/recognize`, formData, {
-            headers: {
-                ...formData.getHeaders() // Header multipart + boundary
-            }
-        });
+        const [aiResponse, cloudUrl] = await Promise.all([
+            axios.post(`${PYTHON_URL}/recognize`, formData, {
+                headers: {
+                    ...formData.getHeaders() // Header multipart + boundary
+                }
+            }),
+            uploadToCloudinary(req.file.buffer, `school-bus/check-in/${new Date().getFullYear()}`)
+        ]);
 
-        studentId = response.data.data.studentId;
-
+        studentId = aiResponse.data.data.studentId;
+        evidenceUrl = cloudUrl;
     } catch (error) {
         // Nếu lỗi đến từ service Python (có response trả về)
         if (error.response && error.response.data) {
@@ -316,6 +326,7 @@ exports.checkInWithFace = catchAsync(async (req, res, next) => {
         return next(new AppError('Không thể kết nối hoặc dịch vụ AI gặp lỗi không xác định.', 500));
     }
     req.body.studentId = studentId;
+    req.body.evidenceUrl = evidenceUrl;
 
     const action = trip.direction === 'PICK_UP' ? 'PICKED_UP' : 'DROPPED_OFF';
 

@@ -12,7 +12,8 @@ const studentStopSchema = new mongoose.Schema({
         default: 'PENDING',
         required: true
     },
-    timestamp: { type: Date } // Thoi gian quet RFID (null khi PENDING | ABSENT)
+    timestamp: { type: Date }, // Thoi gian quet RFID (null khi PENDING | ABSENT)
+    evidenceUrl: { type: String }
 }, { _id: false });
 
 const actualStopTimeSchema = new mongoose.Schema({
@@ -58,10 +59,10 @@ const tripSchema = new mongoose.Schema({
         default: false,
         select: false
     },
-    
+
     // ⚠️: Lưu trạm mục tiêu hiện tại
     nextStationIndex: { type: Number, default: 0 }, // Đang đi tới trạm thứ mấy trong lộ trình
-    
+
     // Cờ đánh dấu để tránh spam thông báo
     hasNotifiedApproaching: { type: Boolean, default: false }, // Đã báo "Sắp tới" (100m)???
     hasNotifiedArrived: { type: Boolean, default: false },      // Đã báo "Đã tới" (50m)???

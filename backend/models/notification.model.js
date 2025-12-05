@@ -13,7 +13,8 @@ const notificationSchema = new mongoose.Schema({
     message: {
         type: String,
         required: true
-    }
+    },
+    evidenceUrl: { type: String }
 }, {
     timestamps: { createdAt: true, updatedAt: false }, // Adds createdAt and updatedAt timestamps
     versionKey: false

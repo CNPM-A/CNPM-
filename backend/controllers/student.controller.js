@@ -5,6 +5,7 @@ const catchAsync = require("../utils/catchAsync");
 const axios = require('axios');
 const FormData = require('form-data');
 const FaceData = require('../models/faceData.model');
+const { uploadToCloudinary } = require('../utils/cloudinary');
 
 exports.getMyStudents = catchAsync(async (req, res, next) => {
     const baseFilter = {
@@ -50,22 +51,31 @@ exports.registerStudentFace = catchAsync(async (req, res, next) => {
     const PYTHON_URL = process.env.PYTHON_SERVICE_URL || 'http://localhost:5000';
 
     let encoding;
+    let imageUrl;
 
     try {
-        // FIX: Thay `FormData` bằng `formData`
-        const response = await axios.post(`${PYTHON_URL}/register`, formData, {
-            headers: {
-                ...formData.getHeaders()
-            }
-        });
-        encoding = response.data.encoding;
+        const [aiResponse, cloudUrl] = await Promise.all([
+            // Task AI
+            axios.post(`${PYTHON_URL}/register`, formData, {
+                headers: {
+                    ...formData.getHeaders()
+                }
+            }),
+            // Task Cloudinary
+            uploadToCloudinary(req.file.buffer, 'school-bus/faces')
+        ]);
+
+        encoding = aiResponse.data.encoding;
+        imageUrl = cloudUrl;
     } catch (error) {
         // Nếu lỗi đến từ service Python (có response trả về)
-        if (error.response && error.response.data && error.response.data.error) {
-            // Trả về lỗi cụ thể từ service Python
-            return next(new AppError(error.response.data.error, error.response.status));
-        }
+        // if (error.response && error.response.data && error.response.data) {
+        //     // Trả về lỗi cụ thể từ service Python
+        //     return next(new AppError(error.response.data.error, error.response.status));
+        // }
 
+
+        return next(new AppError(error, 500));
         // Nếu là lỗi khác (VD: không kết nối được service, timeout,...)
         return next(new AppError('Không thể kết nối hoặc dịch vụ AI gặp lỗi.', 500));
     }
@@ -76,16 +86,20 @@ exports.registerStudentFace = catchAsync(async (req, res, next) => {
         $set: {
             studentId: studentId,
             encoding: encoding,
-            // IMPROVEMENT: Chỗ này nên là URL của ảnh sau khi đã được lưu ở đâu đó (S3, Cloudinary, etc.)
-            imageUrl: "https://link-anh-demo.com/anh.jpg"
+            // Chỗ này nên là URL của ảnh sau khi đã được lưu ở đâu đó (S3, Cloudinary,...)
+            imageUrl: imageUrl
         },
     }, {
         upsert: true, // Có thì update, chưa có tạo mới
         new: true
     });
 
-    return res.status(201).json({
+    res.status(201).json({
         'status': 'success',
-        data: null // Có thể trả về faceData nếu cần
+        message: 'Đăng ký khuôn mặt thành công!',
+        data: {
+            studentId,
+            imageUrl
+        }
     });
 });
