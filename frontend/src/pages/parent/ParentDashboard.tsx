@@ -18,6 +18,7 @@ const customBusIcon = L.divIcon({
 export default function Dashboard() {
   const navigate = useNavigate();
   const [student, setStudent] = useState<any>(null);
+  const [trip, setTrip] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showPhotoModal, setShowPhotoModal] = useState(false);
@@ -34,12 +35,26 @@ export default function Dashboard() {
           return;
         }
         
+        // Fetch student data
         const res = await api.get(`/students?parentId=${(user as any)._id}`);
         const students = res.data.data || res.data;
         if (students && students.length > 0) {
           setStudent(students[0]);
         } else {
           setError('No student data found for this parent account');
+        }
+
+        // Fetch active trip data
+        try {
+          const tripRes = await api.get('/trips/my-schedule');
+          const trips = tripRes.data.data || tripRes.data || [];
+          const activeTrip = trips.find((t: any) => t.status === 'IN_PROGRESS');
+          if (activeTrip) {
+            setTrip(activeTrip);
+          }
+        } catch (tripError) {
+          console.error("Could not fetch trip data:", tripError);
+          // Don't fail the entire dashboard if trip fetch fails
         }
       } catch (e: any) {
         console.error("API Error fetching student data:", e);
@@ -208,6 +223,61 @@ export default function Dashboard() {
                     </button>
                 </div>
             </div>
+
+            {/* Vehicle Info */}
+            {trip && (
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+                  <span className="w-1 h-5 bg-orange-500 rounded-full"></span>
+                  Thông tin xe
+                </h3>
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-orange-100 rounded-xl flex items-center justify-center text-3xl">
+                    🚌
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs text-slate-500 mb-1">Biển số xe</p>
+                    <p className="text-2xl font-bold text-orange-600">
+                      {trip.busId?.licensePlate || 'N/A'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Driver Info */}
+            {trip && (
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+                  <span className="w-1 h-5 bg-blue-500 rounded-full"></span>
+                  Thông tin tài xế
+                </h3>
+                <div className="flex items-center gap-4 mb-3">
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-2xl">
+                    👨‍✈️
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-slate-900">
+                      {trip.driverId?.name || 'Đang cập nhật'}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      {trip.driverId?.phoneNumber || 'Đang cập nhật'}
+                    </p>
+                  </div>
+                </div>
+                {trip.driverId?.phoneNumber && (
+                  <a
+                    href={`tel:${trip.driverId.phoneNumber}`}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 transition-colors shadow-lg shadow-green-500/30"
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    Gọi ngay
+                  </a>
+                )}
+              </div>
+            )}
 
             {/* Today's Schedule */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 h-fit">
