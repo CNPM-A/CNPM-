@@ -7,10 +7,10 @@ import DriverLayout from '../layouts/DriverLayout';
 const Login = lazy(() => import('../pages/shared/login'));
 const NotFound = lazy(() => import('../pages/shared/NotFound'));
 
+// Chỉ giữ lại 4 trang CHÍNH của tài xế
 const DriverHome = lazy(() => import('../pages/driver/DriverHome'));
 const DriverContacts = lazy(() => import('../pages/driver/DriverContacts'));
 const DriverDailySchedule = lazy(() => import('../pages/driver/DriverDailySchedule'));
-const DriverFeatures = lazy(() => import('../pages/driver/DriverFeatures'));
 const DriverOperations = lazy(() => import('../pages/driver/DriverOperations'));
 
 const Loader = () => (
@@ -27,16 +27,18 @@ export default function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="*" element={<NotFound />} />
 
-        {/* Driver - Dùng layout riêng */}
+        {/* Driver Routes - Chỉ còn 4 trang chính */}
         <Route element={<DriverLayout />}>
           <Route path="/driver" element={<DriverHome />} />
           <Route path="/driver/contacts" element={<DriverContacts />} />
           <Route path="/driver/daily-schedule" element={<DriverDailySchedule />} />
-          <Route path="/driver/features" element={<DriverFeatures />} />
           <Route path="/driver/operations" element={<DriverOperations />} />
+
+          {/* Redirect về trang chủ driver nếu vào link cũ */}
+          <Route path="/driver/features" element={<Navigate to="/driver" replace />} />
         </Route>
 
-        {/* Redirect */}
+        {/* Redirect root */}
         <Route path="/" element={<Navigate to="/driver" replace />} />
       </Routes>
     </Suspense>
