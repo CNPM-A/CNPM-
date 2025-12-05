@@ -1,8 +1,9 @@
 import axios from 'axios';
 
+// Base URL from BackendSpecs.md
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
-  withCredentials: false, // Changed to false to avoid CORS issues with Bearer token
+  baseURL: import.meta.env.VITE_API_URL || 'https://smart-school-bus-api.onrender.com/api/v1',
+  withCredentials: false,
 });
 
 // Add a request interceptor

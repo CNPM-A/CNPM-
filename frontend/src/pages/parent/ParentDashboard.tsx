@@ -25,10 +25,22 @@ const MOCK_STUDENT = {
   evidenceUrl: null
 };
 
+const MOCK_NOTIFICATIONS = [
+  { _id: '1', message: 'Xe đã đón học sinh thành công', createdAt: new Date().toISOString() },
+  { _id: '2', message: 'Xe đang di chuyển về trường', createdAt: new Date(Date.now() - 3600000).toISOString() },
+  { _id: '3', message: 'Học sinh đã có mặt tại trường', createdAt: new Date(Date.now() - 7200000).toISOString() }
+];
+
+const MOCK_TRIP = {
+  busId: { licensePlate: '51B-123.45' },
+  driverId: { name: 'Nguyễn Văn Tài', phone: '0909 123 456' }
+};
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [student, setStudent] = useState<any>(null);
   const [trip, setTrip] = useState<any>(null);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showPhotoModal, setShowPhotoModal] = useState(false);
@@ -65,10 +77,27 @@ export default function Dashboard() {
           const activeTrip = trips.find((t: any) => t.status === 'IN_PROGRESS');
           if (activeTrip) {
             setTrip(activeTrip);
+          } else {
+            // Use mock trip for demo
+            setTrip(MOCK_TRIP);
           }
         } catch (tripError) {
           console.error("Could not fetch trip data:", tripError);
-          // Don't fail the entire dashboard if trip fetch fails
+          setTrip(MOCK_TRIP); // Fallback
+        }
+
+        // Fetch notifications from /notifications/me
+        try {
+          const notifRes = await api.get('/notifications/me');
+          const notifData = notifRes.data.data || notifRes.data || [];
+          if (notifData && notifData.length > 0) {
+            setNotifications(notifData.slice(0, 3)); // Latest 3
+          } else {
+            setNotifications(MOCK_NOTIFICATIONS);
+          }
+        } catch (notifError) {
+          console.error("Could not fetch notifications:", notifError);
+          setNotifications(MOCK_NOTIFICATIONS); // Fallback
         }
       } catch (e: any) {
         console.error("API Error fetching student data:", e);
@@ -326,6 +355,35 @@ export default function Dashboard() {
                             <p className="text-xs text-slate-500 mt-1">04:30 PM • Home Address</p>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            {/* Recent Notifications Widget */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+                    <span className="w-1 h-5 bg-green-500 rounded-full"></span>
+                    Thông báo mới nhất
+                </h3>
+                <div className="space-y-3">
+                    {notifications.map((notif: any, index: number) => (
+                        <div key={notif._id || index} className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl">
+                            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center shrink-0">
+                                <BellIcon className="w-4 h-4 text-green-600" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm text-slate-700 font-medium">{notif.message}</p>
+                                <p className="text-xs text-slate-400 mt-1">
+                                    {new Date(notif.createdAt).toLocaleTimeString('vi-VN', { 
+                                        hour: '2-digit', 
+                                        minute: '2-digit' 
+                                    })}
+                                </p>
+                            </div>
+                        </div>
+                    ))}
+                    {notifications.length === 0 && (
+                        <p className="text-sm text-slate-400 text-center py-4">Không có thông báo mới</p>
+                    )}
                 </div>
             </div>
         </div>

@@ -79,17 +79,19 @@ const RecenterMap = ({ lat, lng }: { lat: number; lng: number }) => {
 
 export default function Tracking() {
   const [activeTrip, setActiveTrip] = useState<Trip | null>(null);
-  const [isSimulation, setIsSimulation] = useState(false);
+  const [isSimulation, setIsSimulation] = useState(true); // Start with simulation
   const [stops, setStops] = useState<Stop[]>([]);
+  const [routePath, setRoutePath] = useState<[number, number][]>([]);
   
   // Simulation State
   const [currentRouteIndex, setCurrentRouteIndex] = useState(0);
   const [routePathIndex, setRoutePathIndex] = useState(0);
   
-  // Current Display Data
-  const currentRoute = MOCK_ROUTES[currentRouteIndex];
-  // Convert [lat, lng] array to object for state if needed, or just use values
-  const currentPoint = currentRoute.path[routePathIndex];
+  // Current Display Data - use real route if available, otherwise simulation
+  const currentRoute = routePath.length > 0 ? routePath : MOCK_ROUTES[currentRouteIndex].path;
+  const currentPoint = routePath.length > 0 && routePathIndex < routePath.length 
+    ? routePath[routePathIndex] 
+    : MOCK_ROUTES[currentRouteIndex].path[routePathIndex];
   const [busLocation, setBusLocation] = useState<Coordinate>({ lat: currentPoint[0], lng: currentPoint[1] });
 
   // Socket
@@ -116,16 +118,43 @@ export default function Tracking() {
     fetchTrip();
   }, []);
 
-  // Fetch trip details including stops
+  // Fetch trip details including route and stops per BackendSpecs
   const fetchTripDetails = async (tripId: string) => {
     try {
       const response = await api.get(`/trips/${tripId}`);
       const tripData = response.data.data || response.data;
-      if (tripData && tripData.orderedStops) {
-        setStops(tripData.orderedStops);
+      
+      if (tripData) {
+        // Map route coordinates from scheduleId.routeId.shape.coordinates
+        // Backend returns [Lng, Lat], need to reverse to [Lat, Lng] for Leaflet
+        if (tripData.scheduleId?.routeId?.shape?.coordinates) {
+          const coords = tripData.scheduleId.routeId.shape.coordinates;
+          const reversedCoords = coords.map((coord: [number, number]) => [coord[1], coord[0]] as [number, number]);
+          setRoutePath(reversedCoords);
+          setIsSimulation(false); // Use real route
+        }
+
+        // Map stops from scheduleId.stopTimes
+        if (tripData.scheduleId?.stopTimes) {
+          const mappedStops = tripData.scheduleId.stopTimes.map((stopTime: any) => ({
+            stopId: {
+              _id: stopTime.stationId._id,
+              name: stopTime.stationId.name,
+              latitude: stopTime.stationId.latitude,
+              longitude: stopTime.stationId.longitude
+            },
+            arrivalTime: stopTime.arrivalTime,
+            schedule: {
+              arrivalTime: stopTime.arrivalTime
+            }
+          }));
+          setStops(mappedStops);
+        }
       }
     } catch (error) {
       console.error("Could not fetch trip details:", error);
+      console.warn("Using simulation mode");
+      setIsSimulation(true);
     }
   };
 
@@ -162,7 +191,8 @@ export default function Tracking() {
         const nextIndex = prevIndex + 1;
         
         // Check if we reached the end of the current route
-        if (nextIndex >= currentRoute.path.length) {
+        const simulationPath = MOCK_ROUTES[currentRouteIndex].path;
+        if (nextIndex >= simulationPath.length) {
             // Move to next route
             const nextRouteIdx = (currentRouteIndex + 1) % MOCK_ROUTES.length;
             setCurrentRouteIndex(nextRouteIdx);
@@ -174,15 +204,18 @@ export default function Tracking() {
     }, 100);
 
     return () => clearInterval(interval);
-  }, [isSimulation, currentRouteIndex, currentRoute.path.length]);
+  }, [isSimulation, currentRouteIndex]);
 
   // Update bus location when path index or route changes
   useEffect(() => {
       if (isSimulation) {
-          const point = currentRoute.path[routePathIndex];
-          setBusLocation({ lat: point[0], lng: point[1] });
+          const simulationPath = MOCK_ROUTES[currentRouteIndex].path;
+          if (routePathIndex < simulationPath.length) {
+            const point = simulationPath[routePathIndex];
+            setBusLocation({ lat: point[0], lng: point[1] });
+          }
       }
-  }, [routePathIndex, currentRouteIndex, isSimulation, currentRoute]);
+  }, [routePathIndex, currentRouteIndex, isSimulation]);
 
 
 
@@ -227,7 +260,7 @@ export default function Tracking() {
 
             {/* Route Line */}
             <Polyline 
-              positions={currentRoute.path.map(p => [p[0], p[1]])} 
+              positions={currentRoute.map((p: [number, number]) => [p[0], p[1]])} 
               color="#f97316" 
               weight={6} 
               opacity={0.8} 
@@ -274,10 +307,10 @@ export default function Tracking() {
           <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-4 py-2 rounded-xl shadow-lg border border-slate-100 z-[400] max-w-[250px]">
             <p className="text-xs font-bold text-slate-400 uppercase">Lộ trình hiện tại</p>
             <p className="font-bold text-slate-800 text-sm truncate">
-              {isSimulation ? currentRoute.name : 'Đang cập nhật...'}
+              {isSimulation ? MOCK_ROUTES[currentRouteIndex].name : 'Đang cập nhật từ API...'}
             </p>
             {isSimulation && (
-                <p className="text-xs text-slate-500 mt-1 truncate">{currentRoute.description}</p>
+                <p className="text-xs text-slate-500 mt-1 truncate">{MOCK_ROUTES[currentRouteIndex].description}</p>
             )}
           </div>
         </div>
