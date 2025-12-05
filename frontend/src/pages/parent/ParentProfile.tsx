@@ -17,8 +17,8 @@ interface UserProfile {
   email: string;
   phoneNumber: string;
   role: string;
-  avatar?: string; // Mocked
-  address?: string; // Mocked
+  avatar?: string;
+  address?: string;
 }
 
 export default function ParentProfile() {
@@ -31,29 +31,20 @@ export default function ParentProfile() {
     const fetchProfileData = async () => {
       setLoading(true);
       try {
-        // 1. Get User Info
         const currentUser = authService.getCurrentUser();
         if (currentUser) {
-          setUser({
-            ...(currentUser as any),
-            avatar: "https://ui-avatars.com/api/?name=" + (currentUser as any).name + "&background=f97316&color=fff", // Mock Avatar
-            address: "123 School Street, District 1, HCMC" // Mock Address
-          });
+          setUser(currentUser as any);
 
           // 2. Get Children Info
           try {
             const res = await api.get(`/students?parentId=${(currentUser as any)._id}`);
-            // Handle generic response structure: { status: "success", data: [...] } or just [...]
             const studentsData = res.data.data || res.data || [];
             if (Array.isArray(studentsData)) {
                 setStudents(studentsData);
             }
           } catch (err) {
             console.error("Failed to fetch students:", err);
-            // Fallback mock students if API fails (optional, but good for demo)
-            setStudents([
-                { _id: '1', name: 'Nguyen Van A', grade: '5A', pickupStopId: 'Station A', dropoffStopId: 'Station B' }
-            ]);
+            // Don't fallback to mock data, let UI show empty state
           }
         }
       } catch (error) {

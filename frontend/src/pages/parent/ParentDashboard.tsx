@@ -6,15 +6,6 @@ import { BusIcon, SpeedIcon, MapIcon, UserIcon, BellIcon, SettingsIcon } from '.
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 
-// Mock Data for Fallback
-const MOCK_STUDENT = {
-  name: "Nguyen Van A",
-  class: "5A",
-  school: "Primary School District 1",
-  route: "Route #12 Morning",
-  status: "on-bus" // 'at-home', 'on-bus', 'at-school'
-};
-
 // Fix Leaflet Icons
 const customBusIcon = L.divIcon({
   className: 'custom-bus-icon',
@@ -28,29 +19,29 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [student, setStudent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Try fetching real data
-        try {
-            const user = authService.getCurrentUser();
-            if (user && (user as any)._id) {
-                const res = await api.get(`/students?parentId=${(user as any)._id}`);
-                const students = res.data.data || res.data;
-                if (students && students.length > 0) {
-                    setStudent(students[0]);
-                } else {
-                    setStudent(MOCK_STUDENT);
-                }
-            } else {
-                 setStudent(MOCK_STUDENT);
-            }
-        } catch (e) {
-            console.warn("API Error, using mock:", e);
-            setStudent(MOCK_STUDENT);
+        setError('');
+        const user = authService.getCurrentUser();
+        if (!user || !(user as any)._id) {
+          setError('User not authenticated properly');
+          return;
         }
+        
+        const res = await api.get(`/students?parentId=${(user as any)._id}`);
+        const students = res.data.data || res.data;
+        if (students && students.length > 0) {
+          setStudent(students[0]);
+        } else {
+          setError('No student data found for this parent account');
+        }
+      } catch (e: any) {
+        console.error("API Error fetching student data:", e);
+        setError(e.response?.data?.message || 'Failed to load student data. Please check connection.');
       } finally {
         setLoading(false);
       }
@@ -61,6 +52,24 @@ export default function Dashboard() {
   if (loading) {
       return <div className="flex items-center justify-center h-full text-slate-400">Loading dashboard...</div>;
   }
+
+  if (error || !student) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-6 max-w-md">
+            <h3 className="text-red-800 font-bold mb-2">Không thể tải dữ liệu</h3>
+            <p className="text-red-600 text-sm">{error || 'No student data available'}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Thử lại
+            </button>
+          </div>
+        </div>
+      );
+  }
+
 
   return (
     <div className="space-y-6" style={{ height: 'calc(100vh - 80px)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>

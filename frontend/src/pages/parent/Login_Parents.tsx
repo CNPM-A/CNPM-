@@ -41,20 +41,7 @@ export default function Login() {
     }
   };
 
-  const handleDemoLogin = async () => {
-      setLoading(true);
-      try {
-          await authService.loginDemo();
-          navigate('/parent/dashboard');
-      } finally {
-          setLoading(false);
-      }
-  };
 
-  const fillCredentials = () => {
-    setFormData({ username: '012012', password: '123' });
-    setError('');
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
@@ -87,16 +74,8 @@ export default function Login() {
           <p className="text-slate-500 mb-6">Nhập thông tin tài khoản để tiếp tục.</p>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-600 rounded-lg text-sm flex flex-col gap-2">
+            <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-600 rounded-lg text-sm">
               <p><strong>Lỗi:</strong> {error}</p>
-              {error.includes("kết nối") && (
-                 <button 
-                    onClick={handleDemoLogin}
-                    className="text-left text-red-700 font-bold underline hover:text-red-800"
-                 >
-                    👉 Bỏ qua & Vào chế độ Demo Offline
-                 </button>
-              )}
             </div>
           )}
 
@@ -143,29 +122,7 @@ export default function Login() {
               ) : 'Đăng nhập'}
             </button>
             
-            <div className="flex flex-col gap-3 mt-4 text-center">
-                <button
-                    type="button"
-                    onClick={fillCredentials}
-                    className="text-sm text-orange-600 font-medium hover:underline"
-                >
-                    Điền thông tin mẫu (012012 / 123)
-                </button>
-                
-                <div className="relative flex py-2 items-center">
-                    <div className="flex-grow border-t border-slate-200"></div>
-                    <span className="flex-shrink-0 mx-4 text-gray-400 text-xs uppercase">Hoặc</span>
-                    <div className="flex-grow border-t border-slate-200"></div>
-                </div>
 
-                <button
-                    type="button"
-                    onClick={handleDemoLogin}
-                    className="w-full py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-colors text-sm"
-                >
-                    Truy cập chế độ Demo (Offline)
-                </button>
-            </div>
           </form>
         </div>
       </div>

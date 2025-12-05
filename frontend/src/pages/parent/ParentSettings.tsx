@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../services/api';
 import authService from '../../services/authService';
 import { SettingsIcon } from '../../components/parent/Icons';
 
@@ -118,14 +119,23 @@ export default function ParentSettings() {
     }
 
     try {
-      // SIMULATE API CALL
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const user = authService.getCurrentUser();
+      if (!user || !(user as any)._id) {
+        setMessage({ type: 'error', text: 'User not authenticated' });
+        setLoading(false);
+        return;
+      }
+
+      await api.put(`/users/${(user as any)._id}/password`, {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword
+      });
       
-      setMessage({ type: 'success', text: 'Yêu cầu đổi mật khẩu đã được gửi thành công!' });
+      setMessage({ type: 'success', text: 'Mật khẩu đã được cập nhật thành công!' });
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setShowPasswordSection(false);
     } catch (error: any) {
-      setMessage({ type: 'error', text: 'Có lỗi xảy ra. Vui lòng thử lại.' });
+      setMessage({ type: 'error', text: error.response?.data?.message || 'Có lỗi xảy ra. Vui lòng thử lại.' });
     } finally {
       setLoading(false);
     }
