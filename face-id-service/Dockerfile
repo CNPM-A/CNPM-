@@ -17,7 +17,7 @@ COPY requirements.txt .
 RUN pip install dlib-bin==19.24.2
 
 # Bước B: Cài các thư viện phụ trợ khác
-RUN pip install numpy<2.0.0 face_recognition_models==0.3.0 Pillow Click flask flask-cors gunicorn python-dotenv opencv-python-headless setuptools
+RUN pip install "numpy<2.0.0" face_recognition_models==0.3.0 Pillow Click flask flask-cors gunicorn python-dotenv opencv-python-headless setuptools
 
 # Bước C: Cài face_recognition nhưng CẤM nó cài dependencies (vì ta đã cài dlib-bin ở trên rồi)
 # Nếu không có --no-deps, nó sẽ thấy thiếu 'dlib' (tên gốc) và lại lôi về build -> Lại lỗi OOM.
