@@ -29,4 +29,5 @@ COPY . .
 EXPOSE 5000
 
 # 5. Chạy server (Tăng timeout lên để AI xử lý kịp)
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app", "--timeout", "120"]
+# Render sẽ inject PORT env variable, gunicorn sẽ dùng nó
+CMD gunicorn --bind 0.0.0.0:${PORT:-5000} app:app --timeout 120

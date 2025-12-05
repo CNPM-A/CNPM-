@@ -1,3 +1,4 @@
+import os
 from flask import Flask, request, jsonify
 from src.controllers import recognize_face, register_face
 
@@ -16,4 +17,5 @@ def register():
     return register_face(request)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=3000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
