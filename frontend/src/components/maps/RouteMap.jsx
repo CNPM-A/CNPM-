@@ -1,11 +1,13 @@
 // // src/components/maps/RouteMap.jsx
-// import React, { useEffect, useState, useRef } from 'react';
-// import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
-// import L from 'leaflet';
-// import 'leaflet/dist/leaflet.css';
-// import '../../fixLeafletIcon.js';
+// import React, { useEffect, useState, useRef } from "react";
+// import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
+// import L from "leaflet";
+// import "leaflet/dist/leaflet.css";
+// import "../../fixLeafletIcon.js";
 
-// // 🚌 ICON BUS ĐẸP
+// /* ============================================================
+//    🚌 ICON BUS
+// ============================================================ */
 // const busIcon = L.divIcon({
 //   html: `
 //     <div style="
@@ -14,7 +16,7 @@
 //       width: 56px; height: 56px;
 //       border-radius: 50%;
 //       display: flex; align-items: center; justify-content: center;
-//       font-weight: bold; font-size: 18px;
+//       font-size: 18px; font-weight: bold;
 //       border: 6px solid white;
 //       box-shadow: 0 8px 30px rgba(0,0,0,0.5);
 //       animation: float 3s ease-in-out infinite;
@@ -27,21 +29,19 @@
 //       }
 //     </style>
 //   `,
-//   className: '',
+//   className: "",
 //   iconSize: [56, 56],
 //   iconAnchor: [28, 56],
 // });
 
-// /* ======================================================
-//    🚍 Animated Bus – FULLY UPDATED
-//    - Dừng tại trạm theo lastStoppedPosition
-//    - Resume từ đúng vị trí đã dừng
-//    - Tương thích với useDriverRouteLogic mới
-// ========================================================= */
+// /* ============================================================
+//    🚍 Animated Bus (UPDATED WITH CHECK-IN LOGIC)
+// ============================================================ */
 // function AnimatedBus({
 //   path,
 //   isTracking,
 //   isAtStation,
+//   isCheckingIn,
 //   lastStoppedPosition,
 // }) {
 //   const map = useMap();
@@ -51,27 +51,27 @@
 //   const startRef = useRef(null);
 //   const pausedElapsedRef = useRef(0);
 
-//   // Tìm index gần nhất từ lastStoppedPosition
+//   // Tìm index gần nhất trên path
 //   const findClosestIndex = (pt) => {
-//     if (!path || path.length === 0) return 0;
-//     let bestIndex = 0;
-//     let bestDist = Infinity;
+//     if (!path?.length) return 0;
+//     let best = 0, min = Infinity;
 
 //     for (let i = 0; i < path.length; i++) {
-//       const dist =
-//         (path[i][0] - pt[0]) ** 2 + (path[i][1] - pt[1]) ** 2;
-//       if (dist < bestDist) {
-//         bestDist = dist;
-//         bestIndex = i;
+//       const d = (path[i][0] - pt[0]) ** 2 + (path[i][1] - pt[1]) ** 2;
+//       if (d < min) {
+//         min = d;
+//         best = i;
 //       }
 //     }
-//     return bestIndex;
+//     return best;
 //   };
 
-//   // --- MAIN EFFECT ---
+//   /* MAIN EFFECT ------------------------------------------------- */
 //   useEffect(() => {
-//     // ❌ STOP
+//     // ❌ STOP animation
 //     if (!isTracking) {
+//       cancelAnimationFrame(rafRef.current);
+
 //       if (lastStoppedPosition) {
 //         setPosition(lastStoppedPosition);
 //         map.panTo(lastStoppedPosition);
@@ -79,29 +79,29 @@
 //         setPosition(path[0]);
 //         map.panTo(path[0]);
 //       }
-
-//       cancelAnimationFrame(rafRef.current);
-//       return;
-//     }
-
-//     // 🚏 Nếu đang ở trạm -> DỪNG HOÀN TOÀN
-//     if (isAtStation && lastStoppedPosition) {
-//       setPosition(lastStoppedPosition);
-//       map.panTo(lastStoppedPosition);
-//       cancelAnimationFrame(rafRef.current);
 //       startRef.current = null;
 //       return;
 //     }
 
-//     // ▶ RESUME từ lastStoppedPosition
+//     // 🚏 DỪNG TẠI TRẠM CHECK-IN
+//     if (isAtStation || isCheckingIn) {
+//       cancelAnimationFrame(rafRef.current);
+//       if (lastStoppedPosition) {
+//         setPosition(lastStoppedPosition);
+//         map.panTo(lastStoppedPosition);
+//       }
+//       return;
+//     }
+
+//     // ▶ Resume from lastStoppedPosition
 //     if (!startRef.current) {
-//       const totalDuration = 240000;
+//       const total = 240000; // 4 phút animation
 
 //       if (lastStoppedPosition) {
 //         const idx = findClosestIndex(lastStoppedPosition);
 //         const progress = idx / (path.length - 1);
+//         pausedElapsedRef.current = total * progress;
 
-//         pausedElapsedRef.current = progress * totalDuration;
 //         startRef.current = Date.now() - pausedElapsedRef.current;
 
 //         setPosition(lastStoppedPosition);
@@ -114,9 +114,9 @@
 //     }
 
 //     const animate = () => {
-//       const totalDuration = 240000;
+//       const total = 240000;
 //       const elapsed = Date.now() - startRef.current;
-//       const progress = Math.min(elapsed / totalDuration, 1);
+//       const progress = Math.min(elapsed / total, 1);
 
 //       const idx = Math.floor(progress * (path.length - 1));
 //       const pos = path[idx];
@@ -132,7 +132,7 @@
 //     rafRef.current = requestAnimationFrame(animate);
 
 //     return () => cancelAnimationFrame(rafRef.current);
-//   }, [isTracking, isAtStation, path, lastStoppedPosition, map]);
+//   }, [isTracking, isAtStation, isCheckingIn, path, lastStoppedPosition, map]);
 
 //   if (!position) return null;
 
@@ -140,68 +140,77 @@
 //     <Marker position={position} icon={busIcon}>
 //       <Popup>
 //         <div className="font-bold">
-//           {isAtStation ? "Xe đang dừng để check-in" : "Đang di chuyển"}
+//           {isCheckingIn
+//             ? "🚏 Đang check-in học sinh"
+//             : isAtStation
+//             ? "🅿 Đang dừng tại trạm"
+//             : "🚌 Đang di chuyển"}
 //         </div>
 //       </Popup>
 //     </Marker>
 //   );
 // }
 
-// /* ======================================================
-//    🗺️ RouteMap – FULLY UPDATED
-// ========================================================= */
+// /* ============================================================
+//    🗺️ RouteMap — FULL LOGIC UPDATE
+// ============================================================ */
 // export default function RouteMap({
 //   center = [10.77, 106.68],
 //   zoom = 14,
 //   stops = [],
-//   isTracking = false,
-//   isAtStation = false,
-//   currentStationIndex = -1,
-//   lastStoppedPosition = null,
+//   isTracking,
+//   isAtStation,
+//   isCheckingIn,
+//   currentStationIndex,
+//   lastStoppedPosition,
 // }) {
 //   const [realPath, setRealPath] = useState([]);
 
-//   // Lấy route từ OSRM
+//   /* Tạo tuyến OSRM ------------------------------------------------- */
 //   useEffect(() => {
 //     if (stops.length < 2) return;
 
-//     const coords = stops.map(s => `${s.position[1]},${s.position[0]}`).join(';');
+//     const coords = stops
+//       .map((s) => `${s.position[1]},${s.position[0]}`)
+//       .join(";");
 
-//     fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`)
-//       .then(r => r.json())
-//       .then(data => {
-//         if (data.routes?.[0]?.geometry?.coordinates) {
+//     fetch(
+//       `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`
+//     )
+//       .then((r) => r.json())
+//       .then((d) => {
+//         if (d.routes?.[0]?.geometry?.coordinates) {
 //           setRealPath(
-//             data.routes[0].geometry.coordinates.map(c => [c[1], c[0]])
+//             d.routes[0].geometry.coordinates.map((c) => [c[1], c[0]])
 //           );
 //         } else {
-//           setRealPath(stops.map(s => s.position));
+//           setRealPath(stops.map((s) => s.position));
 //         }
 //       })
-//       .catch(() => setRealPath(stops.map(s => s.position)));
+//       .catch(() => setRealPath(stops.map((s) => s.position)));
 //   }, [stops]);
 
-//   // Icon trạm
-//   const createStopIcon = (index, isCurrent) =>
+//   /* Icon trạm ------------------------------------------------------ */
+//   const stopIcon = (index, isCurrent) =>
 //     L.divIcon({
 //       html: `
 //         <div style="
-//           background: ${isCurrent ? '#8b5cf6' : '#10b981'};
+//           background: ${isCurrent ? "#8b5cf6" : "#10b981"};
 //           color: white;
-//           width:48px; height:48px;
-//           border-radius:50%;
-//           display:flex; align-items:center; justify-content:center;
-//           font-weight:bold; font-size:20px;
-//           border:6px solid white;
-//           box-shadow:0 8px 25px rgba(0,0,0,0.4);
-//           animation:${isCurrent ? "pulse 2s infinite" : "none"};
+//           width: 48px; height: 48px;
+//           border-radius: 50%;
+//           display: flex; justify-content:center; align-items:center;
+//           font-size: 20px; font-weight: bold;
+//           border: 6px solid white;
+//           box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+//           animation: ${isCurrent ? "pulse 2s infinite" : "none"};
 //         ">${index + 1}</div>
 
 //         <style>
 //           @keyframes pulse {
-//             0% { box-shadow:0 0 0 0 rgba(139,92,246,0.7); }
-//             70% { box-shadow:0 0 0 20px rgba(139,92,246,0); }
-//             100% { box-shadow:0 0 0 0 rgba(139,92,246,0); }
+//             0% { box-shadow:0 0 0 0 rgba(139,92,246,0.7) }
+//             70% { box-shadow:0 0 0 20px rgba(139,92,246,0) }
+//             100% { box-shadow:0 0 0 0 rgba(139,92,246,0) }
 //           }
 //         </style>
 //       `,
@@ -211,7 +220,7 @@
 
 //   return (
 //     <div className="h-96 w-full rounded-xl overflow-hidden shadow-2xl border-4 border-indigo-100">
-//       <MapContainer center={center} zoom={zoom} style={{ height: '100%', width: '100%' }}>
+//       <MapContainer center={center} zoom={zoom} style={{ height: "100%", width: "100%" }}>
 //         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
 //         {realPath.length > 1 && (
@@ -223,7 +232,7 @@
 //           <Marker
 //             key={stop.id}
 //             position={stop.position}
-//             icon={createStopIcon(idx, idx === currentStationIndex)}
+//             icon={stopIcon(idx, idx === currentStationIndex)}
 //           >
 //             <Popup>
 //               <div className="text-center">
@@ -231,7 +240,7 @@
 //                 <div className="text-sm text-gray-600">Dự kiến: {stop.time}</div>
 
 //                 {idx === currentStationIndex && (
-//                   <div className="mt-3 px-4 py-2 bg-green-500 text-white rounded-full text-lg font-bold animate-pulse">
+//                   <div className="mt-3 px-4 py-2 bg-green-600 text-white rounded-full text-lg font-bold animate-pulse">
 //                     ĐANG CHECK-IN
 //                   </div>
 //                 )}
@@ -240,11 +249,12 @@
 //           </Marker>
 //         ))}
 
-//         {/* 🚌 Animated bus */}
+//         {/* 🚌 Animated Bus */}
 //         <AnimatedBus
-//           path={realPath.length > 0 ? realPath : stops.map(s => s.position)}
+//           path={realPath.length ? realPath : stops.map((s) => s.position)}
 //           isTracking={isTracking}
 //           isAtStation={isAtStation}
+//           isCheckingIn={isCheckingIn}
 //           lastStoppedPosition={lastStoppedPosition}
 //         />
 //       </MapContainer>
@@ -260,6 +270,7 @@ import "../../fixLeafletIcon.js";
 
 /* ============================================================
    🚌 ICON BUS
+   (giữ nguyên thiết kế của bạn)
 ============================================================ */
 const busIcon = L.divIcon({
   html: `
@@ -288,14 +299,16 @@ const busIcon = L.divIcon({
 });
 
 /* ============================================================
-   🚍 Animated Bus (UPDATED WITH CHECK-IN LOGIC)
+   🚍 Animated Bus (with persisted stopped position)
 ============================================================ */
 function AnimatedBus({
-  path,
-  isTracking,
-  isAtStation,
-  isCheckingIn,
-  lastStoppedPosition,
+  path = [],
+  isTracking = false,
+  isAtStation = false,
+  isCheckingIn = false,
+  lastStoppedPosition = null,
+  isMoving = null, // optional override
+  persistStopped = true,
 }) {
   const map = useMap();
   const [position, setPosition] = useState(null);
@@ -304,13 +317,15 @@ function AnimatedBus({
   const startRef = useRef(null);
   const pausedElapsedRef = useRef(0);
 
-  // Tìm index gần nhất trên path
+  // find nearest index on path for a given point
   const findClosestIndex = (pt) => {
     if (!path?.length) return 0;
-    let best = 0, min = Infinity;
-
+    let best = 0;
+    let min = Infinity;
     for (let i = 0; i < path.length; i++) {
-      const d = (path[i][0] - pt[0]) ** 2 + (path[i][1] - pt[1]) ** 2;
+      const dx = path[i][0] - pt[0];
+      const dy = path[i][1] - pt[1];
+      const d = dx * dx + dy * dy;
       if (d < min) {
         min = d;
         best = i;
@@ -319,50 +334,62 @@ function AnimatedBus({
     return best;
   };
 
-  /* MAIN EFFECT ------------------------------------------------- */
-  useEffect(() => {
-    // ❌ STOP animation
-    if (!isTracking) {
-      cancelAnimationFrame(rafRef.current);
+  // decide moving state if not passed explicitly
+  const computedIsMoving = isMoving ?? (isTracking && !isAtStation && !isCheckingIn);
 
+  // Persist last stopped position into localStorage (so app can resume later)
+  useEffect(() => {
+    if (persistStopped && isAtStation && position) {
+      try {
+        localStorage.setItem("lastStoppedBusPosition", JSON.stringify(position));
+      } catch (e) {console.error(e);
+        // ignore storage errors
+      }
+    }
+  }, [persistStopped, isAtStation, position]);
+
+  useEffect(() => {
+    // if not tracking => show lastStoppedPosition or start point
+    if (!isTracking) {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
       if (lastStoppedPosition) {
         setPosition(lastStoppedPosition);
-        map.panTo(lastStoppedPosition);
+        try { map.panTo(lastStoppedPosition); } catch (e) {console.error(e);}
       } else if (path.length > 0) {
         setPosition(path[0]);
-        map.panTo(path[0]);
+        try { map.panTo(path[0]); } catch (e) {console.error(e);}
       }
       startRef.current = null;
       return;
     }
 
-    // 🚏 DỪNG TẠI TRẠM CHECK-IN
+    // if at station or checking in -> pause animation and show stopped pos (prefer lastStoppedPosition)
     if (isAtStation || isCheckingIn) {
-      cancelAnimationFrame(rafRef.current);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
       if (lastStoppedPosition) {
         setPosition(lastStoppedPosition);
-        map.panTo(lastStoppedPosition);
+        try { map.panTo(lastStoppedPosition); } catch (e) {console.error(e);  }
       }
+      // don't start animation
       return;
     }
 
-    // ▶ Resume from lastStoppedPosition
+    // resume animation from lastStoppedPosition if exists
     if (!startRef.current) {
-      const total = 240000; // 4 phút animation
-
+      const total = 240000; // full route simulated duration
       if (lastStoppedPosition) {
         const idx = findClosestIndex(lastStoppedPosition);
-        const progress = idx / (path.length - 1);
+        const progress = Math.min(Math.max(idx / Math.max(1, path.length - 1), 0), 1);
         pausedElapsedRef.current = total * progress;
-
         startRef.current = Date.now() - pausedElapsedRef.current;
-
         setPosition(lastStoppedPosition);
-        map.panTo(lastStoppedPosition);
+        try { map.panTo(lastStoppedPosition); } catch (e) {console.error(e);  }
       } else {
         startRef.current = Date.now();
-        setPosition(path[0]);
-        map.panTo(path[0]);
+        if (path.length > 0) {
+          setPosition(path[0]);
+          try { map.panTo(path[0]); } catch (e) {console.error(e);}
+        }
       }
     }
 
@@ -370,12 +397,12 @@ function AnimatedBus({
       const total = 240000;
       const elapsed = Date.now() - startRef.current;
       const progress = Math.min(elapsed / total, 1);
-
       const idx = Math.floor(progress * (path.length - 1));
-      const pos = path[idx];
-
-      setPosition(pos);
-      map.panTo(pos, { animate: true, duration: 0.6 });
+      const pos = path[idx] || path[path.length - 1] || null;
+      if (pos) {
+        setPosition(pos);
+        try { map.panTo(pos, { animate: true, duration: 0.6 }); } catch (e) {console.error(e); }
+      }
 
       if (progress < 1) {
         rafRef.current = requestAnimationFrame(animate);
@@ -384,20 +411,25 @@ function AnimatedBus({
 
     rafRef.current = requestAnimationFrame(animate);
 
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [isTracking, isAtStation, isCheckingIn, path, lastStoppedPosition, map]);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [isTracking, isAtStation, isCheckingIn, path, lastStoppedPosition, map, isMoving]);
 
   if (!position) return null;
+
+  // popup message with clearer state
+  let popupText = "🚌 Đang di chuyển";
+  if (isCheckingIn) popupText = "🚏 Đang check-in học sinh";
+  else if (isAtStation) popupText = "🅿 Đã dừng tại trạm";
+  else if (!computedIsMoving) popupText = "⏸ Tạm dừng";
 
   return (
     <Marker position={position} icon={busIcon}>
       <Popup>
-        <div className="font-bold">
-          {isCheckingIn
-            ? "🚏 Đang check-in học sinh"
-            : isAtStation
-            ? "🅿 Đang dừng tại trạm"
-            : "🚌 Đang di chuyển"}
+        <div className="font-bold">{popupText}</div>
+        <div className="text-sm mt-1">
+          {Array.isArray(position) ? `Lat: ${position[0].toFixed(5)}, Lng: ${position[1].toFixed(5)}` : ""}
         </div>
       </Popup>
     </Marker>
@@ -405,37 +437,40 @@ function AnimatedBus({
 }
 
 /* ============================================================
-   🗺️ RouteMap — FULL LOGIC UPDATE
+   🗺️ RouteMap — export component
+   Props:
+     - stops: array of {id,name,position,time}
+     - isTracking, isAtStation, isCheckingIn, isMoving (optional)
+     - currentStationIndex, lastStoppedPosition
+     - persistStopped (optional)
 ============================================================ */
 export default function RouteMap({
   center = [10.77, 106.68],
   zoom = 14,
   stops = [],
-  isTracking,
-  isAtStation,
-  isCheckingIn,
-  currentStationIndex,
-  lastStoppedPosition,
+  isTracking = false,
+  isAtStation = false,
+  isCheckingIn = false,
+  isMoving = null,
+  currentStationIndex = -1,
+  lastStoppedPosition = null,
+  persistStopped = true,
 }) {
   const [realPath, setRealPath] = useState([]);
 
-  /* Tạo tuyến OSRM ------------------------------------------------- */
   useEffect(() => {
-    if (stops.length < 2) return;
+    if (stops.length < 2) {
+      setRealPath(stops.map(s => s.position));
+      return;
+    }
 
-    const coords = stops
-      .map((s) => `${s.position[1]},${s.position[0]}`)
-      .join(";");
+    const coords = stops.map((s) => `${s.position[1]},${s.position[0]}`).join(";");
 
-    fetch(
-      `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`
-    )
+    fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`)
       .then((r) => r.json())
       .then((d) => {
         if (d.routes?.[0]?.geometry?.coordinates) {
-          setRealPath(
-            d.routes[0].geometry.coordinates.map((c) => [c[1], c[0]])
-          );
+          setRealPath(d.routes[0].geometry.coordinates.map((c) => [c[1], c[0]]));
         } else {
           setRealPath(stops.map((s) => s.position));
         }
@@ -443,7 +478,6 @@ export default function RouteMap({
       .catch(() => setRealPath(stops.map((s) => s.position)));
   }, [stops]);
 
-  /* Icon trạm ------------------------------------------------------ */
   const stopIcon = (index, isCurrent) =>
     L.divIcon({
       html: `
@@ -476,22 +510,14 @@ export default function RouteMap({
       <MapContainer center={center} zoom={zoom} style={{ height: "100%", width: "100%" }}>
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-        {realPath.length > 1 && (
-          <Polyline positions={realPath} color="#4f46e5" weight={9} opacity={0.9} />
-        )}
+        {realPath.length > 1 && <Polyline positions={realPath} color="#4f46e5" weight={9} opacity={0.9} />}
 
-        {/* Trạm */}
         {stops.map((stop, idx) => (
-          <Marker
-            key={stop.id}
-            position={stop.position}
-            icon={stopIcon(idx, idx === currentStationIndex)}
-          >
+          <Marker key={stop.id} position={stop.position} icon={stopIcon(idx, idx === currentStationIndex)}>
             <Popup>
               <div className="text-center">
                 <div className="font-bold text-xl text-indigo-700">{stop.name}</div>
                 <div className="text-sm text-gray-600">Dự kiến: {stop.time}</div>
-
                 {idx === currentStationIndex && (
                   <div className="mt-3 px-4 py-2 bg-green-600 text-white rounded-full text-lg font-bold animate-pulse">
                     ĐANG CHECK-IN
@@ -502,13 +528,14 @@ export default function RouteMap({
           </Marker>
         ))}
 
-        {/* 🚌 Animated Bus */}
         <AnimatedBus
           path={realPath.length ? realPath : stops.map((s) => s.position)}
           isTracking={isTracking}
           isAtStation={isAtStation}
           isCheckingIn={isCheckingIn}
+          isMoving={isMoving}
           lastStoppedPosition={lastStoppedPosition}
+          persistStopped={persistStopped}
         />
       </MapContainer>
     </div>
