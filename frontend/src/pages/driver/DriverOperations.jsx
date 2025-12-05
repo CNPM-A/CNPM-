@@ -315,10 +315,10 @@
 // src/pages/driver/DriverOperations.jsx
 import React, { useState } from 'react';
 import { 
-  Play, Square, AlertTriangle, Phone, UserCheck, MessageCircle,
+  PlayCircle, PauseCircle, AlertTriangle, Phone, UserCheck, MessageCircle,
   Siren, Bus, CheckCircle, CloudRain, MapPin, Clock, Users, X
 } from 'lucide-react';
-import useDriverRouteLogic from '../../hooks/useDriverRouteLogic';
+import { useRouteTracking } from '../../context/RouteTrackingContext';
 import { useAuth } from '../../hooks/useAuth';
 
 const quickMessages = [
@@ -346,7 +346,13 @@ const initialStudents = [
 
 export default function DriverOperations() {
   const { user } = useAuth();
-  const { isTracking, startTracking, stopTracking } = useDriverRouteLogic();
+  const {
+    isTracking,
+    startTracking,
+    stopTracking,
+    currentStation,
+  } = useRouteTracking();
+  
   const [showIncidentModal, setShowIncidentModal] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState('');
   const [incidentNote, setIncidentNote] = useState('');
@@ -357,14 +363,11 @@ export default function DriverOperations() {
 
   const handleStartTrip = () => {
     startTracking();
-    alert('Chuyến đi đã bắt đầu! Phụ huynh được thông báo');
   };
 
   const handleEndTrip = () => {
     if (confirm('Kết thúc chuyến đi?')) {
       stopTracking();
-      setStudents(prev => prev.map(s => ({ ...s, status: 'dropped' })));
-      alert('Chuyến đi kết thúc thành công!');
     }
   };
 
@@ -417,43 +420,53 @@ export default function DriverOperations() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-4">
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6">
 
-        {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-6 text-white shadow-xl">
-          <div className="flex items-center justify-between">
+        {/* Header + Start/Stop Button */}
+        <header className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-6 text-white shadow-xl">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold flex items-center gap-3">
                 <Bus className="w-10 h-10" /> Thao tác nhanh
               </h1>
               <p className="text-lg opacity-90 mt-1">Tài xế: {user?.name || 'Tài xế'}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm opacity-75">Trạm hiện tại</p>
-              <p className="text-xl font-bold flex items-center gap-2 justify-end">
-                <MapPin className="w-5 h-5" /> {currentStop}
+              <p className="text-base opacity-75 mt-2 flex items-center gap-2">
+                <MapPin className="w-5 h-5" /> Trạm hiện tại: {currentStation?.name || currentStop}
               </p>
             </div>
+            
+            {/* Start/Stop Button - Đồng bộ */}
+            <button
+              onClick={isTracking ? handleEndTrip : handleStartTrip}
+              className={`flex items-center gap-3 px-8 py-4 rounded-xl font-bold text-lg shadow-lg transition-all transform hover:scale-105 whitespace-nowrap ${
+                isTracking
+                  ? 'bg-gradient-to-r from-red-500 to-pink-600 text-white'
+                  : 'bg-gradient-to-r from-green-500 to-emerald-600 text-white'
+              }`}
+            >
+              {isTracking ? (
+                <>
+                  <PauseCircle className="w-7 h-7" />
+                  DỪNG CHUYẾN
+                </>
+              ) : (
+                <>
+                  <PlayCircle className="w-7 h-7" />
+                  BẮT ĐẦU CHUYẾN
+                </>
+              )}
+            </button>
           </div>
-        </div>
+        </header>
 
         {/* Trạng thái chuyến & Khẩn cấp */}
         <div className="grid md:grid-cols-2 gap-6">
           {/* Trạng thái */}
           <div className={`rounded-2xl p-8 text-center shadow-xl border-4 transition-all ${isTracking ? 'bg-green-50 border-green-500' : 'bg-gray-100 border-gray-300'}`}>
-            <div className="text-7xl mb-4">{isTracking ? <Play className="text-green-600" /> : <Square className="text-gray-500" />}</div>
+            <div className="text-6xl mb-4">{isTracking ? <PlayCircle className="text-green-600 mx-auto" /> : <PauseCircle className="text-gray-500 mx-auto" />}</div>
             <h2 className="text-3xl font-bold mb-6">{isTracking ? 'ĐANG CHẠY' : 'ĐÃ DỪNG'}</h2>
-            {!isTracking ? (
-              <button onClick={handleStartTrip} className="w-full py-5 bg-green-600 hover:bg-green-700 text-white text-xl font-bold rounded-xl shadow-lg hover:scale-105 transition">
-                BẮT ĐẦU CHUYẾN
-              </button>
-            ) : (
-              <button onClick={handleEndTrip} className="w-full py-5 bg-red-600 hover:bg-red-700 text-white text-xl font-bold rounded-xl shadow-lg hover:scale-105 transition">
-                KẾT THÚC CHUYẾN
-              </button>
-            )}
             {isTracking && (
-              <div className="grid grid-cols-2 gap-4 mt-6">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white rounded-xl p-4 shadow">
                   <div className="text-3xl font-bold text-green-600">{stats.onboard}</div>
                   <div className="text-sm text-gray-600">Đã đón</div>
@@ -471,8 +484,8 @@ export default function DriverOperations() {
             <Siren className="w-20 h-20 text-red-600 mx-auto mb-4 animate-pulse" />
             <h2 className="text-2xl font-bold text-red-700 mb-4">KHẨN CẤP</h2>
             <p className="text-red-600 mb-6">Trên xe: {stats.onboard} học sinh</p>
-            <button onClick={handleEmergencyCall} className="w-full py-6 bg-red-600 hover:bg-red-700 text-white text-2xl font-bold rounded-xl shadow-lg hover:scale-110 transition flex items-center justify-center gap-3">
-              <Phone className="w-8 h-8" /> GỌI CỨU HỘ
+            <button onClick={handleEmergencyCall} className="w-full py-5 bg-red-600 hover:bg-red-700 text-white text-lg font-bold rounded-xl shadow-lg hover:scale-105 transition flex items-center justify-center gap-3">
+              <Phone className="w-7 h-7" /> GỌI CỨU HỘ
             </button>
           </div>
         </div>
@@ -543,7 +556,7 @@ export default function DriverOperations() {
           </div>
         </div>
 
-        {/* Modal báo cáo sự cố - NHỎ GỌN, ĐẸP */}
+        {/* Modal báo cáo sự cố */}
         {showIncidentModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full">

@@ -14,7 +14,7 @@ export default function DriverLayout() {
       {/* Nội dung chính: có padding-top để tránh bị header đè */}
       <div className="flex flex-1 pt-16">
         <DriverSidebar />
-        <main className="flex-1 ml-64 bg-gray-50">
+        <main className="flex-1 pl-64 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <Outlet />
           </div>

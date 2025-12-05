@@ -15,7 +15,7 @@ export default function DriverSidebar() {
   const { logout } = useAuth();
 
   return (
-    <div className="w-64 bg-indigo-700 text-white min-h-screen p-4 flex flex-col">
+    <div className="fixed left-0 top-16 w-64 h-[calc(100vh-4rem)] bg-indigo-700 text-white p-4 flex flex-col z-40 overflow-y-auto">
       <div className="mb-10">
         <h2 className="text-2xl font-bold text-center">TÀI XẾ XE BUÝT</h2>
         <p className="text-indigo-200 text-sm text-center mt-1">Hệ thống đưa đón học sinh</p>

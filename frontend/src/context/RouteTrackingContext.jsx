@@ -1,5 +1,4 @@
-// // src/context/RouteTrackingContext.jsx
-// import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
 // const RouteTrackingContext = createContext();
 
@@ -278,8 +277,6 @@
 // };
 
 // export default RouteTrackingContext;
-// src/context/RouteTrackingContext.jsx
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 
 const RouteTrackingContext = createContext();
 
@@ -291,14 +288,7 @@ export const useRouteTracking = () => {
     return context;
 };
 
-// === DỮ LIỆU TRẠM & HỌC SINH ===
-const ROUTE_STATIONS = [
-    { id: 'st1', name: 'Trạm A - Nguyễn Trãi', position: [10.7628, 106.6602], time: '06:35' },
-    { id: 'st2', name: 'Trạm B - Lê Văn Sỹ', position: [10.7640, 106.6670], time: '06:42' },
-    { id: 'st3', name: 'Trạm C - CMT8', position: [10.7715, 106.6780], time: '06:50' },
-    { id: 'st4', name: 'THPT Lê Quý Đôn', position: [10.7800, 106.6950], time: '07:05' },
-];
-
+// === DỮ LIỆU HỌC SINH & TRẠM ===
 const STUDENTS_DATABASE = {
     hs1: { id: 'hs1', name: 'Nguyễn Văn An', class: '6A1', stop: 'st1', parentName: 'Cô Lan', parentPhone: '0901234567', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=An' },
     hs2: { id: 'hs2', name: 'Trần Thị Bé', class: '6A2', stop: 'st1', parentName: 'Anh Hùng', parentPhone: '0902345678', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Be' },
@@ -311,18 +301,70 @@ const STUDENTS_DATABASE = {
     hs9: { id: 'hs9', name: 'Bùi Thị Lan', class: '6A3', stop: 'st3', parentName: 'Cô Thảo', parentPhone: '0909012345', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lan' },
 };
 
-const STUDENTS_BY_STATION = {
-    st1: Object.values(STUDENTS_DATABASE).filter(s => s.stop === 'st1'),
-    st2: Object.values(STUDENTS_DATABASE).filter(s => s.stop === 'st2'),
-    st3: Object.values(STUDENTS_DATABASE).filter(s => s.stop === 'st3'),
-    st4: [],
+// === TUYẾN ĐI TRONG NGÀY ===
+const ROUTES_TODAY = [
+    {
+        id: 'route1',
+        name: 'Tuyến 01 - Sáng',
+        time: '06:30 - 07:30',
+        totalStudents: 28,
+        stations: [
+            { id: 'st1', name: 'Trạm A - Nguyễn Trãi', position: [10.7628, 106.6602], time: '06:35' },
+            { id: 'st2', name: 'Trạm B - Lê Văn Sỹ', position: [10.7640, 106.6670], time: '06:42' },
+            { id: 'st3', name: 'Trạm C - CMT8', position: [10.7715, 106.6780], time: '06:50' },
+            { id: 'st4', name: 'THPT Lê Quý Đôn', position: [10.7800, 106.6950], time: '07:05' },
+        ],
+    },
+    {
+        id: 'route2',
+        name: 'Tuyến 02 - Chiều',
+        time: '16:00 - 17:00',
+        totalStudents: 25,
+        stations: [
+            { id: 'st5', name: 'THPT Lê Quý Đôn', position: [10.7800, 106.6950], time: '16:00' },
+            { id: 'st6', name: 'Trạm D - Nguyễn Thị Minh Khai', position: [10.7680, 106.6850], time: '16:20' },
+            { id: 'st7', name: 'Trạm E - Võ Thị Sáu', position: [10.7750, 106.6900], time: '16:35' },
+        ],
+    },
+];
+
+// === TẠO DANH SÁCH HỌC SINH THEO TRẠM ===
+const createStudentsByRoute = () => {
+    const studentsByStation = {};
+    ROUTES_TODAY.forEach(route => {
+        route.stations.forEach(station => {
+            studentsByStation[station.id] = [];
+        });
+    });
+    
+    // Gán học sinh cho trạm trong route 1
+    const route1Students = [
+        STUDENTS_DATABASE.hs1, STUDENTS_DATABASE.hs2, STUDENTS_DATABASE.hs3, STUDENTS_DATABASE.hs4,
+        STUDENTS_DATABASE.hs5, STUDENTS_DATABASE.hs6, STUDENTS_DATABASE.hs7,
+        STUDENTS_DATABASE.hs8, STUDENTS_DATABASE.hs9,
+    ];
+    
+    studentsByStation['st1'] = route1Students.slice(0, 4);
+    studentsByStation['st2'] = route1Students.slice(4, 7);
+    studentsByStation['st3'] = route1Students.slice(7, 9);
+    studentsByStation['st4'] = [];
+    
+    // Route 2 students
+    studentsByStation['st5'] = [];
+    studentsByStation['st6'] = route1Students.slice(0, 5);
+    studentsByStation['st7'] = route1Students.slice(5, 9);
+    
+    return studentsByStation;
 };
 
+const STUDENTS_BY_STATION = createStudentsByRoute();
 const CHECKIN_SECONDS = 60;
 const AFTER_ALL_CHECKED_DELAY_MS = 3000;
 
 export const RouteTrackingProvider = ({ children }) => {
+    // === TRẠNG THÁI CHUYẾN ===
     const [isTracking, setIsTracking] = useState(false);
+    const [currentRouteIndex, setCurrentRouteIndex] = useState(0);
     const [currentStationIndex, setCurrentStationIndex] = useState(-1);
     const [studentCheckIns, setStudentCheckIns] = useState({});
     const [stationTimer, setStationTimer] = useState(0);
@@ -332,12 +374,16 @@ export const RouteTrackingProvider = ({ children }) => {
     const timerRef = useRef(null);
     const delayRef = useRef(null);
 
-    // Dữ liệu hiện tại
-    const currentStation = currentStationIndex >= 0 && currentStationIndex < ROUTE_STATIONS.length
-        ? ROUTE_STATIONS[currentStationIndex]
+    // === TUYẾN & TRẠM HIỆN TẠI ===
+    const currentRoute = ROUTES_TODAY[currentRouteIndex] || null;
+    const currentStation = currentRoute && currentStationIndex >= 0 && currentStationIndex < currentRoute.stations.length
+        ? currentRoute.stations[currentStationIndex]
         : null;
 
-    const currentStudents = currentStation ? STUDENTS_BY_STATION[currentStation.id] || [] : [];
+    const currentStudents = useMemo(() => 
+        currentStation ? STUDENTS_BY_STATION[currentStation.id] || [] : [],
+        [currentStation]
+    );
 
     const allStudentsForContact = Object.values(STUDENTS_DATABASE);
 
@@ -366,9 +412,28 @@ export const RouteTrackingProvider = ({ children }) => {
         setCurrentStationIndex(i => i + 1);
     }, [currentStation]);
 
+    // === CHUYỂN TỚI TUYẾN TIẾP THEO ===
+    const moveToNextRoute = useCallback(() => {
+        if (currentRouteIndex < ROUTES_TODAY.length - 1) {
+            setCurrentRouteIndex(i => i + 1);
+            setCurrentStationIndex(0);
+            setStudentCheckIns({});
+            setIsStationActive(false);
+            setStationTimer(0);
+        } else {
+            // Hết tất cả tuyến
+            alert('HOÀN THÀNH TẤT CẢ CÁC CHUYẾN ĐI HÔM NAY!');
+            setIsTracking(false);
+            setCurrentRouteIndex(0);
+            setCurrentStationIndex(-1);
+            setStudentCheckIns({});
+        }
+    }, [currentRouteIndex]);
+
     // === BẮT ĐẦU CHUYẾN ===
     const startTracking = useCallback(() => {
         setIsTracking(true);
+        setCurrentRouteIndex(0);
         setCurrentStationIndex(0);
         setStudentCheckIns({});
         setStationTimer(0);
@@ -386,6 +451,8 @@ export const RouteTrackingProvider = ({ children }) => {
         const pickedUp = Object.values(studentCheckIns).filter(v => v === 'present').length;
 
         const stoppedData = {
+            routeIndex: currentRouteIndex,
+            routeName: currentRoute?.name || 'Chưa xuất phát',
             stationIndex: currentStationIndex,
             stationName: currentStation?.name || 'Chưa xuất phát',
             position: currentStation?.position || null,
@@ -398,22 +465,23 @@ export const RouteTrackingProvider = ({ children }) => {
         localStorage.setItem('lastStoppedBusState', JSON.stringify(stoppedData));
 
         setIsTracking(false);
+        setCurrentRouteIndex(0);
         setCurrentStationIndex(-1);
         setStationTimer(0);
         setIsStationActive(false);
-    }, [currentStationIndex, currentStation, studentCheckIns]);
+    }, [currentRouteIndex, currentRoute, currentStationIndex, currentStation, studentCheckIns]);
 
-    // === TỰ ĐỘNG CHUYỂN TRẠM KHI ĐẾN NƠI ===
+    // === TỰ ĐỘNG CHUYỂN TRẠM & TUYẾN ===
     useEffect(() => {
-        if (!isTracking) {
+        if (!isTracking || !currentRoute) {
             setIsStationActive(false);
             setStationTimer(0);
             return;
         }
 
-        if (currentStationIndex >= ROUTE_STATIONS.length) {
-            alert('HOÀN THÀNH CHUYẾN ĐI!\nĐÃ ĐẾN TRƯỜNG AN TOÀN!');
-            stopTracking();
+        // Đã qua hết trạm của tuyến hiện tại → chuyển tuyến
+        if (currentStationIndex >= currentRoute.stations.length) {
+            moveToNextRoute();
             return;
         }
 
@@ -421,10 +489,11 @@ export const RouteTrackingProvider = ({ children }) => {
         setIsStationActive(true);
         setStationTimer(0);
 
-        // Nếu là trạm cuối → kết thúc
-        if (currentStationIndex === ROUTE_STATIONS.length - 1) {
-  setTimeout(() => {
+        // Nếu là trạm cuối của tuyến → chuẩn bị chuyển tuyến
+        if (currentStationIndex === currentRoute.stations.length - 1) {
+            setTimeout(() => {
                 setIsStationActive(false);
+                moveToNextRoute();
             }, 2000);
             return;
         }
@@ -464,7 +533,7 @@ export const RouteTrackingProvider = ({ children }) => {
                 });
             }, 1000);
         }, 3000);
-    }, [currentStationIndex, isTracking, currentStudents, studentCheckIns]);
+    }, [currentStationIndex, isTracking, currentRoute, currentStudents, studentCheckIns, currentStation, moveToNextRoute]);
 
     // Cleanup
     useEffect(() => {
@@ -477,9 +546,12 @@ export const RouteTrackingProvider = ({ children }) => {
     return (
         <RouteTrackingContext.Provider value={{
             isTracking,
+            currentRouteIndex,
+            currentRoute,
+            routesToday: ROUTES_TODAY,
             currentStationIndex,
             currentStation,
-            stations: ROUTE_STATIONS,
+            stations: currentRoute?.stations || [],
             currentStudents,
             studentCheckIns,
             stationTimer,
@@ -490,6 +562,7 @@ export const RouteTrackingProvider = ({ children }) => {
             stopTracking,
             checkInStudent,
             forceDepart,
+            moveToNextRoute,
         }}>
             {children}
         </RouteTrackingContext.Provider>
