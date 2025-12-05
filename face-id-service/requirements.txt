@@ -1,21 +1,20 @@
-# giống express
-flask
+# --- Core Web Framework ---
+flask==3.0.3
+flask-cors==4.0.1
+gunicorn==22.0.0
+python-dotenv==1.0.1
 
-# CORS
-flask-cors
+# --- System & Helpers (QUAN TRỌNG) ---
+# Thêm cái này để sửa lỗi "pkg_resources"
+setuptools==69.5.1
 
-# Phát hiện khuôn mặt: Tìm xem trong ảnh có mặt người không.
-# Mã hóa (Encoding): Chuyển khuôn mặt thành một mảng 128 số thực (vectơ đặc trưng) để so sánh.
-# So sánh: Tính khoảng cách giữa 2 khuôn mặt để biết có phải cùng 1 người không.
-face_recognition
+# --- AI & Face Recognition ---
+face_recognition_models==0.3.0
+face_recognition==1.3.0
 
-# Xử lý matrics
-numpy
+# --- Image Processing & Math ---
+# QUAN TRỌNG: Giữ numpy < 2 để không lỗi OpenCV
+numpy<2.0.0
 
-# Phiên bản "không đầu" (headless) của OpenCV - thư viện Thị giác máy tính (Computer Vision).
-opencv-python-headless
-
-# WSGI HTTP Server (Web Server Gateway Interface) dành cho môi trường Production.
-# Khi deploy lên Render, cần để quản lý các tiến trình (workers),
-# giúp server Python chịu tải tốt hơn, xử lý nhiều request cùng lúc mà không bị sập.
-gunicorn
+# Bản headless nhẹ cho server
+opencv-python-headless==4.9.0.80
