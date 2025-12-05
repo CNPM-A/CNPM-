@@ -25,6 +25,19 @@ interface Trip {
     };
 }
 
+interface Stop {
+  stopId: {
+    _id: string;
+    name: string;
+    latitude: number;
+    longitude: number;
+  };
+  arrivalTime?: string;
+  schedule?: {
+    arrivalTime: string;
+  };
+}
+
 // Custom Bus Icon
 const busIcon = L.divIcon({
   className: 'custom-bus-icon',
@@ -42,6 +55,19 @@ const busIcon = L.divIcon({
   popupAnchor: [0, -20]
 });
 
+// Custom Stop Icon
+const stopIcon = L.divIcon({
+  className: 'custom-stop-icon',
+  html: `
+    <div class="flex items-center justify-center w-6 h-6 bg-blue-500 text-white rounded-full border-2 border-white shadow-md">
+      <div class="text-xs">📍</div>
+    </div>
+  `,
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+  popupAnchor: [0, -12]
+});
+
 // --- Helper Component to Auto-Pan Map ---
 const RecenterMap = ({ lat, lng }: { lat: number; lng: number }) => {
   const map = useMap();
@@ -54,6 +80,7 @@ const RecenterMap = ({ lat, lng }: { lat: number; lng: number }) => {
 export default function Tracking() {
   const [activeTrip, setActiveTrip] = useState<Trip | null>(null);
   const [isSimulation, setIsSimulation] = useState(false);
+  const [stops, setStops] = useState<Stop[]>([]);
   
   // Simulation State
   const [currentRouteIndex, setCurrentRouteIndex] = useState(0);
@@ -77,6 +104,10 @@ export default function Tracking() {
         const current = trips.find((t: any) => t.status === 'IN_PROGRESS');
         if (current) {
           setActiveTrip(current);
+          // Fetch trip details to get stops
+          if (current._id) {
+            fetchTripDetails(current._id);
+          }
         }
       } catch (error) {
         console.warn("Could not fetch active trip, running in demo mode.");
@@ -84,6 +115,19 @@ export default function Tracking() {
     };
     fetchTrip();
   }, []);
+
+  // Fetch trip details including stops
+  const fetchTripDetails = async (tripId: string) => {
+    try {
+      const response = await api.get(`/trips/${tripId}`);
+      const tripData = response.data.data || response.data;
+      if (tripData && tripData.orderedStops) {
+        setStops(tripData.orderedStops);
+      }
+    } catch (error) {
+      console.error("Could not fetch trip details:", error);
+    }
+  };
 
   // 2. Socket Logic (Real-time)
   useEffect(() => {
@@ -202,6 +246,28 @@ export default function Tracking() {
                 </div>
               </Popup>
             </Marker>
+
+            {/* Stop Markers */}
+            {stops.map((stop, index) => (
+              <Marker 
+                key={stop.stopId._id || index}
+                position={[stop.stopId.latitude, stop.stopId.longitude]} 
+                icon={stopIcon}
+              >
+                <Popup>
+                  <div className="p-2">
+                    <p className="font-bold text-slate-900 text-sm">
+                      {stop.stopId.name}
+                    </p>
+                    {(stop.arrivalTime || stop.schedule?.arrivalTime) && (
+                      <p className="text-xs text-slate-500 mt-1">
+                        Dự kiến: {new Date(stop.arrivalTime || stop.schedule?.arrivalTime || '').toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    )}
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
           </MapContainer>
 
           {/* Overlay Status */}
