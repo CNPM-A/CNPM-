@@ -43,6 +43,49 @@
 //     });
 //     const messagesEndRef = useRef(null);
 
+//     // --- Load persisted messages from localStorage on mount and merge ---
+//     useEffect(() => {
+//         try {
+//             const raw = localStorage.getItem('chat_messages');
+//             if (raw) {
+//                 const store = JSON.parse(raw);
+//                 setMessages(prev => {
+//                     const merged = { ...prev };
+//                     Object.keys(store).forEach(thread => {
+//                         // avoid duplicating identical messages by id (simple guard)
+//                         const existingIds = new Set((merged[thread] || []).map(m => m.id));
+//                         merged[thread] = [...(merged[thread] || [])];
+//                         store[thread].forEach(m => {
+//                             if (!existingIds.has(m.id)) merged[thread].push(m);
+//                         });
+//                     });
+//                     return merged;
+//                 });
+//             }
+//         } catch (e) {
+//             console.error('Failed to load chat_messages from localStorage', e);
+//         }
+//     }, []);
+
+//     // Listen to chat_message events dispatched by other components (DriverOperations)
+//     useEffect(() => {
+//         const handler = (e) => {
+//             try {
+//                 const { threadId, message } = e.detail || {};
+//                 if (!threadId || !message) return;
+//                 setMessages(prev => {
+//                     const copy = { ...prev };
+//                     copy[threadId] = [...(copy[threadId] || []), message];
+//                     return copy;
+//                 });
+//             } catch (err) {
+//                 console.error('chat_message handler error', err);
+//             }
+//         };
+//         window.addEventListener('chat_message', handler);
+//         return () => window.removeEventListener('chat_message', handler);
+//     }, []);
+
 //     // Tự động cuộn xuống cuối khi có tin mới
 //     useEffect(() => {
 //         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -91,7 +134,25 @@
 //         setNewMessage('');
 //     };
 
-//     // Gửi tin nhắn thật (cập nhật state)
+//     // Helper: persist a message to localStorage and broadcast a 'chat_message' event
+//     const persistAndBroadcast = (threadId, messageObj) => {
+//         try {
+//             const KEY = 'chat_messages';
+//             const raw = localStorage.getItem(KEY);
+//             let store = raw ? JSON.parse(raw) : {};
+//             if (!store[threadId]) store[threadId] = [];
+//             // avoid duplicate ids
+//             if (!store[threadId].some(m => m.id === messageObj.id)) {
+//                 store[threadId].push(messageObj);
+//                 localStorage.setItem(KEY, JSON.stringify(store));
+//             }
+//             window.dispatchEvent(new CustomEvent('chat_message', { detail: { threadId, message: messageObj } }));
+//         } catch (e) {
+//             console.error('persistAndBroadcast error', e);
+//         }
+//     };
+
+//     // Gửi tin nhắn thật (cập nhật state + persist + broadcast)
 //     const sendMessage = () => {
 //         if (!newMessage.trim() || !activeChat) return;
 
@@ -103,10 +164,14 @@
 //             time: now,
 //         };
 
-//         setMessages((prev) => ({
-//             ...prev,
-//             [activeChat]: [...(prev[activeChat] || []), newMsg],
-//         }));
+//         setMessages((prev) => {
+//             const next = { ...prev };
+//             next[activeChat] = [...(next[activeChat] || []), newMsg];
+//             return next;
+//         });
+
+//         // persist + broadcast so other modules (DriverOperations) or other tabs see it
+//         persistAndBroadcast(activeChat, newMsg);
 
 //         setNewMessage('');
 //     };
@@ -327,11 +392,6 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
     Phone,
     Search,
-    MapPin,
-    Bell,
-    Clock,
-    AlertCircle,
-    CloudRain,
     MessageCircle,
     X,
     Send,
@@ -339,14 +399,7 @@ import {
 } from 'lucide-react';
 import { useRouteTracking } from '../../context/RouteTrackingContext';
 
-const notifications = [
-    { id: 'n1', title: 'Học sinh vắng', time: '07:15', body: 'Cường chưa lên xe hôm nay', type: 'warning' },
-    { id: 'n2', title: 'Cập nhật lộ trình', time: '07:50', body: 'Đi đường vòng do tắc Nguyễn Trãi', type: 'info' },
-    { id: 'n3', title: 'Thời tiết xấu', time: '08:05', body: 'Mưa lớn, xe chạy chậm, phụ huynh yên tâm', type: 'weather' },
-];
-
 export default function DriverContacts() {
-    // ĐÃ XÓA useAuth vì không dùng đến user → hết lỗi ESLint
     const {
         isTracking,
         currentStation,
@@ -376,7 +429,6 @@ export default function DriverContacts() {
                 setMessages(prev => {
                     const merged = { ...prev };
                     Object.keys(store).forEach(thread => {
-                        // avoid duplicating identical messages by id (simple guard)
                         const existingIds = new Set((merged[thread] || []).map(m => m.id));
                         merged[thread] = [...(merged[thread] || [])];
                         store[thread].forEach(m => {
@@ -410,12 +462,12 @@ export default function DriverContacts() {
         return () => window.removeEventListener('chat_message', handler);
     }, []);
 
-    // Tự động cuộn xuống cuối khi có tin mới
+    // Auto scroll to bottom on message change / open
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, activeChat]);
 
-    // Lọc học sinh theo tìm kiếm
+    // Filter students
     const filteredStudents = useMemo(() => {
         if (!searchTerm) return allStudentsForContact;
         const lower = searchTerm.toLowerCase();
@@ -426,16 +478,16 @@ export default function DriverContacts() {
         );
     }, [searchTerm, allStudentsForContact]);
 
-    // Lấy trạng thái học sinh từ Context
+    // Student status (from context)
     const getStudentStatus = (studentId) => {
         if (!isTracking) return 'waiting';
         const status = studentCheckIns[studentId];
         if (status === 'present') return 'onboard';
         if (status === 'absent') return 'absent';
-        return 'late'; // chưa check-in → trễ
+        return 'late';
     };
 
-    // Badge trạng thái (compact)
+    // Compact badges
     const getStatusBadge = (status) => {
         const base = 'px-3 py-1 rounded-full text-xs font-semibold';
         switch (status) {
@@ -450,7 +502,7 @@ export default function DriverContacts() {
         }
     };
 
-    // Mở chat
+    // Open chat
     const openChat = (chatId) => {
         setActiveChat(chatId);
         setIsChatOpen(true);
@@ -458,14 +510,13 @@ export default function DriverContacts() {
         setNewMessage('');
     };
 
-    // Helper: persist a message to localStorage and broadcast a 'chat_message' event
+    // Persist + broadcast helper
     const persistAndBroadcast = (threadId, messageObj) => {
         try {
             const KEY = 'chat_messages';
             const raw = localStorage.getItem(KEY);
             let store = raw ? JSON.parse(raw) : {};
             if (!store[threadId]) store[threadId] = [];
-            // avoid duplicate ids
             if (!store[threadId].some(m => m.id === messageObj.id)) {
                 store[threadId].push(messageObj);
                 localStorage.setItem(KEY, JSON.stringify(store));
@@ -476,7 +527,7 @@ export default function DriverContacts() {
         }
     };
 
-    // Gửi tin nhắn thật (cập nhật state + persist + broadcast)
+    // Send message (state + persist + broadcast)
     const sendMessage = () => {
         if (!newMessage.trim() || !activeChat) return;
 
@@ -494,23 +545,18 @@ export default function DriverContacts() {
             return next;
         });
 
-        // persist + broadcast so other modules (DriverOperations) or other tabs see it
         persistAndBroadcast(activeChat, newMsg);
-
         setNewMessage('');
     };
 
-    // Lấy tin nhắn hiện tại
     const currentMessages = activeChat ? messages[activeChat] || [] : [];
 
-    // Lọc tin nhắn theo tìm kiếm
     const filteredMessages = useMemo(() => {
         if (!messageSearch) return currentMessages;
         const lower = messageSearch.toLowerCase();
         return currentMessages.filter((m) => m.text.toLowerCase().includes(lower));
     }, [currentMessages, messageSearch]);
 
-    // Tiêu đề chat
     const getChatTitle = () => {
         if (activeChat === 'admin') return 'Nhóm Quản Lý (Admin)';
         const student = allStudentsForContact.find((s) => `parent-${s.id}` === activeChat);
@@ -535,10 +581,10 @@ export default function DriverContacts() {
                     </div>
                 </div>
 
-                <div className="grid lg:grid-cols-3 gap-4">
-                    {/* CỘT TRÁI - DANH BẠ + CHAT */}
-                    <div className="lg:col-span-2 space-y-4">
-                        {/* Chat với Admin */}
+                <div className="grid lg:grid-cols-1 gap-4">
+                    {/* Main column: Chat button + Search + Contacts */}
+                    <div className="space-y-4">
+                        {/* Chat with Admin */}
                         <button
                             onClick={() => openChat('admin')}
                             className="w-full bg-teal-500 text-white rounded-xl py-3 shadow hover:scale-[1.02] transition flex items-center justify-center gap-3 text-lg font-semibold"
@@ -547,7 +593,7 @@ export default function DriverContacts() {
                             Chat với Quản Lý (Admin)
                         </button>
 
-                        {/* Tìm kiếm + Danh sách học sinh */}
+                        {/* Search + Student list */}
                         <div className="bg-white rounded-xl shadow p-4">
                             <div className="relative mb-4">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -601,48 +647,9 @@ export default function DriverContacts() {
                             </div>
                         </div>
                     </div>
-
-                    {/* CỘT PHẢI - THÔNG BÁO */}
-                    <div className="space-y-4">
-                        <div className="bg-white rounded-xl shadow p-4">
-                            <div className="flex items-center justify-between mb-2">
-                                <h3 className="font-semibold text-sm flex items-center gap-2"><Bell className="w-4 h-4" /> Thông báo</h3>
-                                <div className="text-xs text-gray-400">{notifications.length} mục</div>
-                            </div>
-
-                            <div className="space-y-2">
-                                {notifications.map((notif) => (
-                                    <div
-                                        key={notif.id}
-                                        className={`p-3 rounded-lg border-l-4 flex items-start gap-3 ${notif.type === 'warning' ? 'border-red-400 bg-red-50' : notif.type === 'weather' ? 'border-blue-400 bg-blue-50' : 'border-indigo-400 bg-indigo-50'}`}
-                                    >
-                                        <div className="mt-1">
-                                            {notif.type === 'warning' && <AlertCircle className="w-6 h-6 text-red-600" />}
-                                            {notif.type === 'weather' && <CloudRain className="w-6 h-6 text-blue-600" />}
-                                            {notif.type === 'info' && <Bell className="w-6 h-6 text-indigo-600" />}
-                                        </div>
-                                        <div className="text-sm">
-                                            <div className="font-medium">{notif.title}</div>
-                                            <div className="text-xs text-gray-700">{notif.body}</div>
-                                            <div className="text-xs text-gray-500 mt-1 flex items-center gap-1"><Clock className="w-3 h-3" /> {notif.time}</div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="bg-white rounded-xl shadow p-3">
-                            <h4 className="font-semibold text-sm mb-2">Hành động nhanh</h4>
-                            <div className="flex flex-col gap-2">
-                                <button className="w-full px-3 py-2 rounded-md bg-indigo-600 text-white text-sm">Gọi nhanh phụ huynh</button>
-                                <button className="w-full px-3 py-2 rounded-md border text-sm">Gửi thông báo hàng loạt</button>
-                                <button className="w-full px-3 py-2 rounded-md bg-rose-500 text-white text-sm">Báo cáo sự cố</button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
-                {/* MODAL CHAT - HOẠT ĐỘNG THẬT */}
+                {/* MODAL CHAT */}
                 {isChatOpen && (
                     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
                         <div className="bg-white rounded-xl shadow w-full max-w-3xl h-[86vh] flex flex-col overflow-hidden">

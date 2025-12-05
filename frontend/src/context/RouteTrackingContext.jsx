@@ -1,4 +1,4 @@
-// // src/context/RouteTrackingContext.jsx
+// /* src/context/RouteTrackingContext.jsx */
 // import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
 // const RouteTrackingContext = createContext();
@@ -9,17 +9,89 @@
 //   return context;
 // };
 
-// // -------------------- Mock data (unchanged) --------------------
+// // -------------------- Mock data --------------------
 // const STUDENTS_DATABASE = {
-//   hs1: { id: 'hs1', name: 'Nguyễn Văn An', class: '6A1', stop: 'st1', parentName: 'Cô Lan', parentPhone: '0901234567', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=An' },
-//   hs2: { id: 'hs2', name: 'Trần Thị Bé', class: '6A2', stop: 'st1', parentName: 'Anh Hùng', parentPhone: '0902345678', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Be' },
-//   hs3: { id: 'hs3', name: 'Lê Minh Cường', class: '7A1', stop: 'st1', parentName: 'Cô Mai', parentPhone: '0903456789', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Cuong' },
-//   hs4: { id: 'hs4', name: 'Phạm Ngọc Dũng', class: '8A3', stop: 'st1', parentName: 'Chú Tuấn', parentPhone: '0904567890', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Dung' },
-//   hs5: { id: 'hs5', name: 'Hoàng Thị Em', class: '9A1', stop: 'st2', parentName: 'Chị Hoa', parentPhone: '0905678901', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Em' },
-//   hs6: { id: 'hs6', name: 'Vũ Văn Bình', class: '7A2', stop: 'st2', parentName: 'Anh Nam', parentPhone: '0906789012', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Binh' },
-//   hs7: { id: 'hs7', name: 'Đỗ Thị Hương', class: '8A1', stop: 'st2', parentName: 'Cô Ngọc', parentPhone: '0907890123', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Huong' },
-//   hs8: { id: 'hs8', name: 'Ngô Minh Khang', class: '9A2', stop: 'st3', parentName: 'Chú Long', parentPhone: '0908901234', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Khang' },
-//   hs9: { id: 'hs9', name: 'Bùi Thị Lan', class: '6A3', stop: 'st3', parentName: 'Cô Thảo', parentPhone: '0909012345', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lan' },
+//   hs1: { 
+//     id: 'hs1', 
+//     name: 'Nguyễn Văn An', 
+//     class: '6A1', 
+//     stop: 'st1', 
+//     parentName: 'Cô Lan', 
+//     parentPhone: '0901234567', 
+//     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=An' 
+//   },
+//   hs2: { 
+//     id: 'hs2', 
+//     name: 'Trần Thị Bé', 
+//     class: '6A2', 
+//     stop: 'st1', 
+//     parentName: 'Anh Hùng', 
+//     parentPhone: '0902345678', 
+//     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Be' 
+//   },
+//   hs3: { 
+//     id: 'hs3', 
+//     name: 'Lê Minh Cường', 
+//     class: '7A1', 
+//     stop: 'st1', 
+//     parentName: 'Cô Mai', 
+//     parentPhone: '0903456789', 
+//     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Cuong' 
+//   },
+//   hs4: { 
+//     id: 'hs4', 
+//     name: 'Phạm Ngọc Dũng', 
+//     class: '8A3', 
+//     stop: 'st1', 
+//     parentName: 'Chú Tuấn', 
+//     parentPhone: '0904567890', 
+//     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Dung' 
+//   },
+//   hs5: { 
+//     id: 'hs5', 
+//     name: 'Hoàng Thị Em', 
+//     class: '9A1', 
+//     stop: 'st2', 
+//     parentName: 'Chị Hoa', 
+//     parentPhone: '0905678901', 
+//     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Em' 
+//   },
+//   hs6: { 
+//     id: 'hs6', 
+//     name: 'Vũ Văn Bình', 
+//     class: '7A2', 
+//     stop: 'st2', 
+//     parentName: 'Anh Nam', 
+//     parentPhone: '0906789012', 
+//     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Binh' 
+//   },
+//   hs7: { 
+//     id: 'hs7', 
+//     name: 'Đỗ Thị Hương', 
+//     class: '8A1', 
+//     stop: 'st2', 
+//     parentName: 'Cô Ngọc', 
+//     parentPhone: '0907890123', 
+//     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Huong' 
+//   },
+//   hs8: { 
+//     id: 'hs8', 
+//     name: 'Ngô Minh Khang', 
+//     class: '9A2', 
+//     stop: 'st3', 
+//     parentName: 'Chú Long', 
+//     parentPhone: '0908901234', 
+//     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Khang' 
+//   },
+//   hs9: { 
+//     id: 'hs9', 
+//     name: 'Bùi Thị Lan', 
+//     class: '6A3', 
+//     stop: 'st3', 
+//     parentName: 'Cô Thảo', 
+//     parentPhone: '0909012345', 
+//     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lan' 
+//   },
 // };
 
 // const ROUTES_TODAY = [
@@ -76,6 +148,7 @@
 
 // const STUDENTS_BY_STATION = createStudentsByRoute();
 
+// // config
 // const PRE_ARRIVAL_DELAY_MS = 3000;
 // const CHECKIN_SECONDS = 60;
 // const AFTER_ALL_CHECKED_DELAY_MS = 3000;
@@ -98,25 +171,34 @@
 //     }
 //   });
 
-//   // refs for timers and stable read of studentCheckIns inside intervals
+//   // refs for timers and stable read
 //   const timerRef = useRef(null);
 //   const delayRef = useRef(null);
 //   const studentCheckInsRef = useRef(studentCheckIns);
 
-//   // keep ref in sync
-//   useEffect(() => { studentCheckInsRef.current = studentCheckIns; }, [studentCheckIns]);
+//   // sync ref
+//   useEffect(() => { 
+//     studentCheckInsRef.current = studentCheckIns; 
+//   }, [studentCheckIns]);
 
-//   // derived route/station
+//   // derived
 //   const currentRoute = ROUTES_TODAY[currentRouteIndex] || null;
 //   const stations = currentRoute?.stations || [];
-//   const currentStation = (stations && currentStationIndex >= 0 && currentStationIndex < stations.length) ? stations[currentStationIndex] : null;
-//   const currentStudents = useMemo(() => (currentStation ? (STUDENTS_BY_STATION[currentStation.id] || []) : []), [currentStation]);
-
+//   const currentStation = (stations && currentStationIndex >= 0 && currentStationIndex < stations.length) 
+//     ? stations[currentStationIndex] 
+//     : null;
+//   const currentStudents = useMemo(() => 
+//     (currentStation ? (STUDENTS_BY_STATION[currentStation.id] || []) : []), 
+//     [currentStation]
+//   );
 //   const allStudentsForContact = useMemo(() => Object.values(STUDENTS_DATABASE), []);
 
-//   // isCheckingIn and isMoving as requested
+//   // derived flags
 //   const isCheckingIn = stationTimer > 0;
-//   const isMoving = useMemo(() => !!isTracking && !isStationActive && !isCheckingIn, [isTracking, isStationActive, isCheckingIn]);
+//   const isMoving = useMemo(() => 
+//     !!isTracking && !isStationActive && !isCheckingIn, 
+//     [isTracking, isStationActive, isCheckingIn]
+//   );
 
 //   // ---------------- Actions ----------------
 //   const checkInStudent = useCallback((studentId) => {
@@ -139,8 +221,16 @@
 //       return copy;
 //     });
 
-//     clearInterval(timerRef.current);
-//     clearTimeout(delayRef.current);
+//     // clear timers
+//     if (timerRef.current) { 
+//       clearInterval(timerRef.current); 
+//       timerRef.current = null; 
+//     }
+//     if (delayRef.current) { 
+//       clearTimeout(delayRef.current); 
+//       delayRef.current = null; 
+//     }
+
 //     setIsStationActive(false);
 //     setStationTimer(0);
 //     setCurrentStationIndex(i => i + 1);
@@ -163,8 +253,14 @@
 //   }, [currentRouteIndex]);
 
 //   const startTracking = useCallback(() => {
-//     clearInterval(timerRef.current);
-//     clearTimeout(delayRef.current);
+//     if (timerRef.current) { 
+//       clearInterval(timerRef.current); 
+//       timerRef.current = null; 
+//     }
+//     if (delayRef.current) { 
+//       clearTimeout(delayRef.current); 
+//       delayRef.current = null; 
+//     }
 
 //     setIsTracking(true);
 //     setCurrentRouteIndex(0);
@@ -173,13 +269,21 @@
 //     setStationTimer(0);
 //     setIsStationActive(false);
 //     setLastStoppedState(null);
-//     localStorage.removeItem('lastStoppedBusState');
+    
+//     try { 
+//       localStorage.removeItem('lastStoppedBusState'); 
+//     } catch (e){console.error(e);}
 //   }, []);
 
 //   const stopTracking = useCallback(() => {
-//     // persist stopped state
-//     clearInterval(timerRef.current);
-//     clearTimeout(delayRef.current);
+//     if (timerRef.current) { 
+//       clearInterval(timerRef.current); 
+//       timerRef.current = null; 
+//     }
+//     if (delayRef.current) { 
+//       clearTimeout(delayRef.current); 
+//       delayRef.current = null; 
+//     }
 
 //     const now = new Date().toLocaleString('vi-VN');
 //     const pickedUp = Object.values(studentCheckIns).filter(v => v === 'present').length;
@@ -196,7 +300,11 @@
 //     };
 
 //     setLastStoppedState(stoppedData);
-//     try { localStorage.setItem('lastStoppedBusState', JSON.stringify(stoppedData)); } catch (e) {console.error(e);}
+//     try { 
+//       localStorage.setItem('lastStoppedBusState', JSON.stringify(stoppedData)); 
+//     } catch (e) { 
+//       console.error(e); 
+//     }
 
 //     setIsTracking(false);
 //     setCurrentRouteIndex(0);
@@ -215,16 +323,23 @@
 //       if (typeof data.stationIndex === 'number') setCurrentStationIndex(data.stationIndex);
 //       setIsTracking(true);
 //       return true;
-//     } catch (e) {console.error(e);
+//     } catch (e) {
+//       console.error(e);
 //       return false;
 //     }
 //   }, []);
 
 //   // ---------------- Core auto logic: arrive -> check-in -> depart ----------------
 //   useEffect(() => {
-//     // cleanup previous timers
-//     clearInterval(timerRef.current);
-//     clearTimeout(delayRef.current);
+//     // clear any previous timers
+//     if (timerRef.current) { 
+//       clearInterval(timerRef.current); 
+//       timerRef.current = null; 
+//     }
+//     if (delayRef.current) { 
+//       clearTimeout(delayRef.current); 
+//       delayRef.current = null; 
+//     }
 
 //     if (!isTracking || !currentRoute) {
 //       setIsStationActive(false);
@@ -238,7 +353,7 @@
 //       return;
 //     }
 
-//     // arrive at new station => stop vehicle for check-in sequence
+//     // ARRIVE: stop vehicle for check-in sequence
 //     setIsStationActive(true);
 //     setStationTimer(0);
 
@@ -251,50 +366,61 @@
 //       return;
 //     }
 
-//     // start check-in after small pre-arrival delay
+//     // start check-in after pre-arrival delay
 //     delayRef.current = setTimeout(() => {
-//       // initialize missing keys for current station students (so UI shows them as unknown until present/absent)
+//       // ensure studentCheckIns has keys for current station students (undefined if not set)
 //       const students = STUDENTS_BY_STATION[currentStation?.id] || [];
 //       setStudentCheckIns(prev => {
 //         const copy = { ...prev };
-//         students.forEach(s => { if (!(s.id in copy)) copy[s.id] = undefined; });
+//         students.forEach(s => { 
+//           if (!(s.id in copy)) copy[s.id] = undefined; 
+//         });
 //         return copy;
 //       });
 
+//       // init countdown
 //       setStationTimer(CHECKIN_SECONDS);
 
-//       // start countdown
+//       // start timer
 //       timerRef.current = setInterval(() => {
 //         setStationTimer(prev => {
-//           // prev is the current timer value (state)
+//           // timer expired
 //           if (prev <= 1) {
-//             // timer ended: mark remaining undefined students as absent
 //             const studentsNow = STUDENTS_BY_STATION[currentStation?.id] || [];
 //             studentsNow.forEach(s => {
-//               // use functional update to avoid stale closure
 //               setStudentCheckIns(prevMap => {
-//                 if (prevMap[s.id]) return prevMap; // already present/absent
+//                 if (prevMap[s.id]) return prevMap;
 //                 return { ...prevMap, [s.id]: 'absent' };
 //               });
 //             });
 
-//             clearInterval(timerRef.current);
+//             if (timerRef.current) { 
+//               clearInterval(timerRef.current); 
+//               timerRef.current = null; 
+//             }
+
 //             setIsStationActive(false);
 //             setCurrentStationIndex(i => i + 1);
 //             return 0;
 //           }
 
-//           // check if all students for this station are present => depart early
+//           // early finish: if all present -> depart early
 //           const studentsForThis = STUDENTS_BY_STATION[currentStation?.id] || [];
-//           const presentCount = studentsForThis.filter(s => studentCheckInsRef.current[s.id] === 'present').length;
+//           const presentCount = studentsForThis.filter(
+//             s => !!studentCheckInsRef.current[s.id] && studentCheckInsRef.current[s.id] === 'present'
+//           ).length;
 
 //           if (studentsForThis.length > 0 && presentCount === studentsForThis.length) {
-//             // all present: stop timer and depart after small delay
-//             clearInterval(timerRef.current);
+//             if (timerRef.current) { 
+//               clearInterval(timerRef.current); 
+//               timerRef.current = null; 
+//             }
+
 //             setTimeout(() => {
 //               setIsStationActive(false);
 //               setCurrentStationIndex(i => i + 1);
 //             }, AFTER_ALL_CHECKED_DELAY_MS);
+
 //             return 0;
 //           }
 
@@ -303,50 +429,57 @@
 //       }, 1000);
 //     }, PRE_ARRIVAL_DELAY_MS);
 
-//     // cleanup when effect deps change or unmount
+//     // cleanup when dep changes
 //     return () => {
-//       clearInterval(timerRef.current);
-//       clearTimeout(delayRef.current);
+//       if (timerRef.current) { 
+//         clearInterval(timerRef.current); 
+//         timerRef.current = null; 
+//       }
+//       if (delayRef.current) { 
+//         clearTimeout(delayRef.current); 
+//         delayRef.current = null; 
+//       }
 //     };
-//     // deps: when station index, tracking, route, students or checkins change, reevaluate
 //   }, [currentStationIndex, isTracking, currentRoute, currentStation, stations.length, moveToNextRoute]);
 
 //   // cleanup on unmount
 //   useEffect(() => {
 //     return () => {
-//       clearInterval(timerRef.current);
-//       clearTimeout(delayRef.current);
+//       if (timerRef.current) clearInterval(timerRef.current);
+//       if (delayRef.current) clearTimeout(delayRef.current);
 //     };
 //   }, []);
 
 //   // ---------------- Expose context ----------------
 //   return (
-//     <RouteTrackingContext.Provider value={{
-//       // status
-//       isTracking,
-//       isCheckingIn,
-//       isMoving,
-//       currentRouteIndex,
-//       currentRoute,
-//       routesToday: ROUTES_TODAY,
-//       currentStationIndex,
-//       currentStation,
-//       stations,
-//       currentStudents,
-//       studentCheckIns,
-//       stationTimer,
-//       isStationActive,
-//       lastStoppedState,
-//       allStudentsForContact,
+//     <RouteTrackingContext.Provider 
+//       value={{
+//         // status
+//         isTracking,
+//         isCheckingIn,
+//         isMoving,
+//         currentRouteIndex,
+//         currentRoute,
+//         routesToday: ROUTES_TODAY,
+//         currentStationIndex,
+//         currentStation,
+//         stations,
+//         currentStudents,
+//         studentCheckIns,
+//         stationTimer,
+//         isStationActive,
+//         lastStoppedState,
+//         allStudentsForContact,
 
-//       // actions
-//       startTracking,
-//       stopTracking,
-//       resumeFromLastStopped,
-//       checkInStudent,
-//       forceDepart,
-//       moveToNextRoute,
-//     }}>
+//         // actions
+//         startTracking,
+//         stopTracking,
+//         resumeFromLastStopped,
+//         checkInStudent,
+//         forceDepart,
+//         moveToNextRoute,
+//       }}
+//     >
 //       {children}
 //     </RouteTrackingContext.Provider>
 //   );
@@ -449,38 +582,19 @@ const STUDENTS_DATABASE = {
   },
 };
 
-const ROUTES_TODAY = [
-  {
-    id: 'route1',
-    name: 'Tuyến 01 - Sáng',
-    time: '06:30 - 07:30',
-    totalStudents: 28,
-    stations: [
-      { id: 'st1', name: 'Trạm A - Nguyễn Trãi', position: [10.7628, 106.6602], time: '06:35' },
-      { id: 'st2', name: 'Trạm B - Lê Văn Sỹ', position: [10.7640, 106.6670], time: '06:42' },
-      { id: 'st3', name: 'Trạm C - CMT8', position: [10.7715, 106.6780], time: '06:50' },
-      { id: 'st4', name: 'THPT Lê Quý Đôn', position: [10.7800, 106.6950], time: '07:05' },
-    ],
-  },
-  {
-    id: 'route2',
-    name: 'Tuyến 02 - Chiều',
-    time: '16:00 - 17:00',
-    totalStudents: 25,
-    stations: [
-      { id: 'st5', name: 'THPT Lê Quý Đôn', position: [10.7800, 106.6950], time: '16:00' },
-      { id: 'st6', name: 'Trạm D - Nguyễn Thị Minh Khai', position: [10.7680, 106.6850], time: '16:20' },
-      { id: 'st7', name: 'Trạm E - Võ Thị Sáu', position: [10.7750, 106.6900], time: '16:35' },
-    ],
-  },
+// Base station set re-used across routes for demo simplicity
+const ROUTES_BASE_STATIONS = [
+  { id: 'st1', name: 'Trạm A - Nguyễn Trãi', position: [10.7628, 106.6602], time: '06:35' },
+  { id: 'st2', name: 'Trạm B - Lê Văn Sỹ', position: [10.7640, 106.6670], time: '06:42' },
+  { id: 'st3', name: 'Trạm C - CMT8', position: [10.7715, 106.6780], time: '06:50' },
+  { id: 'st4', name: 'THPT Lê Quý Đôn', position: [10.7800, 106.6950], time: '07:05' },
 ];
 
+// create STUDENTS_BY_STATION used by check-in logic
 const createStudentsByRoute = () => {
   const studentsByStation = {};
-  ROUTES_TODAY.forEach(route => {
-    route.stations.forEach(station => {
-      studentsByStation[station.id] = [];
-    });
+  ROUTES_BASE_STATIONS.forEach(station => { 
+    studentsByStation[station.id] = []; 
   });
 
   const route1Students = [
@@ -494,16 +608,70 @@ const createStudentsByRoute = () => {
   studentsByStation['st3'] = route1Students.slice(7, 9);
   studentsByStation['st4'] = [];
 
+  // additional demo stops (for afternoon/other routes)
   studentsByStation['st5'] = [];
   studentsByStation['st6'] = route1Students.slice(0, 5);
   studentsByStation['st7'] = route1Students.slice(5, 9);
 
   return studentsByStation;
 };
-
 const STUDENTS_BY_STATION = createStudentsByRoute();
 
-// config
+// -------------------- Weekly & daily routes --------------------
+// helper to add minutes safely to a "HH:MM" string
+function addMinutesToTimeStr(timeStr, minutesToAdd) {
+  try {
+    const [hh, mm] = timeStr.split(':').map(Number);
+    const d = new Date();
+    d.setHours(hh, mm, 0, 0);
+    d.setMinutes(d.getMinutes() + minutesToAdd);
+    return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return timeStr;
+  }
+}
+
+// Create 3 routes per day (morning, noon, afternoon) using base stations
+const createDailyRoutes = (dayLabel = 'Hôm nay') => {
+  return [
+    {
+      id: `${dayLabel}-morning`,
+      name: 'Tuyến - Sáng',
+      time: '06:30 - 07:30',
+      totalStudents: 28,
+      stations: ROUTES_BASE_STATIONS,
+    },
+    {
+      id: `${dayLabel}-noon`,
+      name: 'Tuyến - Trưa',
+      time: '11:30 - 12:30',
+      totalStudents: 22,
+      stations: ROUTES_BASE_STATIONS.map(s => ({ 
+        ...s, 
+        time: addMinutesToTimeStr(s.time, 60) 
+      })),
+    },
+    {
+      id: `${dayLabel}-afternoon`,
+      name: 'Tuyến - Chiều',
+      time: '16:00 - 17:00',
+      totalStudents: 25,
+      stations: ROUTES_BASE_STATIONS.map(s => ({ 
+        ...s, 
+        time: addMinutesToTimeStr(s.time, 600) 
+      })),
+    },
+  ];
+};
+
+// Build a weekly plan (labels in Vietnamese)
+const WEEK_DAYS = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ Nhật'];
+const ROUTES_WEEK = WEEK_DAYS.reduce((acc, day) => {
+  acc[day] = createDailyRoutes(day);
+  return acc;
+}, {});
+
+// -------------------- Constants --------------------
 const PRE_ARRIVAL_DELAY_MS = 3000;
 const CHECKIN_SECONDS = 60;
 const AFTER_ALL_CHECKED_DELAY_MS = 3000;
@@ -531,13 +699,25 @@ export const RouteTrackingProvider = ({ children }) => {
   const delayRef = useRef(null);
   const studentCheckInsRef = useRef(studentCheckIns);
 
-  // sync ref
+  // keep ref in sync
   useEffect(() => { 
     studentCheckInsRef.current = studentCheckIns; 
   }, [studentCheckIns]);
 
-  // derived
-  const currentRoute = ROUTES_TODAY[currentRouteIndex] || null;
+  // determine today's label and routes
+  const todayLabel = useMemo(() => {
+    const idx = new Date().getDay(); // 0 Sunday ... 6 Saturday
+    if (idx === 0) return 'Chủ Nhật';
+    return WEEK_DAYS[idx - 1];
+  }, []);
+  
+  const routesToday = useMemo(() => 
+    ROUTES_WEEK[todayLabel] || createDailyRoutes(todayLabel), 
+    [todayLabel]
+  );
+
+  // derived current route/station
+  const currentRoute = routesToday[currentRouteIndex] || null;
   const stations = currentRoute?.stations || [];
   const currentStation = (stations && currentStationIndex >= 0 && currentStationIndex < stations.length) 
     ? stations[currentStationIndex] 
@@ -570,8 +750,8 @@ export const RouteTrackingProvider = ({ children }) => {
     // mark remaining as absent
     setStudentCheckIns(prev => {
       const copy = { ...prev };
-      students.forEach(s => {
-        if (!copy[s.id]) copy[s.id] = 'absent';
+      students.forEach(s => { 
+        if (!copy[s.id]) copy[s.id] = 'absent'; 
       });
       return copy;
     });
@@ -591,21 +771,22 @@ export const RouteTrackingProvider = ({ children }) => {
     setCurrentStationIndex(i => i + 1);
   }, [currentStation]);
 
+  // Move to next route in today's list. If finished all -> stop tracking for the day.
   const moveToNextRoute = useCallback(() => {
-    if (currentRouteIndex < ROUTES_TODAY.length - 1) {
+    if (currentRouteIndex < routesToday.length - 1) {
       setCurrentRouteIndex(i => i + 1);
       setCurrentStationIndex(0);
       setStudentCheckIns({});
       setIsStationActive(false);
       setStationTimer(0);
     } else {
-      alert('HOÀN THÀNH TẤT CẢ CÁC CHUYẾN ĐI HÔM NAY!');
+      alert('HOÀN THÀNH TẤT CẢ CÁC TUYẾN TRONG NGÀY NAY!');
       setIsTracking(false);
       setCurrentRouteIndex(0);
       setCurrentStationIndex(-1);
       setStudentCheckIns({});
     }
-  }, [currentRouteIndex]);
+  }, [currentRouteIndex, routesToday.length]);
 
   const startTracking = useCallback(() => {
     if (timerRef.current) { 
@@ -627,7 +808,9 @@ export const RouteTrackingProvider = ({ children }) => {
     
     try { 
       localStorage.removeItem('lastStoppedBusState'); 
-    } catch (e){console.error(e);}
+    } catch (e) { 
+      console.error(e); 
+    }
   }, []);
 
   const stopTracking = useCallback(() => {
@@ -652,9 +835,11 @@ export const RouteTrackingProvider = ({ children }) => {
       time: now,
       pickedUpStudents: pickedUp,
       checkInData: studentCheckIns,
+      dayLabel: todayLabel,
     };
 
     setLastStoppedState(stoppedData);
+    
     try { 
       localStorage.setItem('lastStoppedBusState', JSON.stringify(stoppedData)); 
     } catch (e) { 
@@ -666,7 +851,7 @@ export const RouteTrackingProvider = ({ children }) => {
     setCurrentStationIndex(-1);
     setStationTimer(0);
     setIsStationActive(false);
-  }, [currentRouteIndex, currentRoute, currentStationIndex, currentStation, studentCheckIns]);
+  }, [currentRouteIndex, currentRoute, currentStationIndex, currentStation, studentCheckIns, todayLabel]);
 
   const resumeFromLastStopped = useCallback(() => {
     try {
@@ -676,11 +861,12 @@ export const RouteTrackingProvider = ({ children }) => {
       setLastStoppedState(data);
       if (data.checkInData) setStudentCheckIns(data.checkInData);
       if (typeof data.stationIndex === 'number') setCurrentStationIndex(data.stationIndex);
+      if (typeof data.routeIndex === 'number') setCurrentRouteIndex(data.routeIndex);
       setIsTracking(true);
       return true;
-    } catch (e) {
-      console.error(e);
-      return false;
+    } catch (e) { 
+      console.error(e); 
+      return false; 
     }
   }, []);
 
@@ -712,11 +898,12 @@ export const RouteTrackingProvider = ({ children }) => {
     setIsStationActive(true);
     setStationTimer(0);
 
-    // if final station: short pause then next route
+    // if final station of route: short pause then advance to next route (or finish)
     if (currentStationIndex === stations.length - 1) {
       delayRef.current = setTimeout(() => {
+        // depart this route -> this increments station index beyond length triggering moveToNextRoute in next effect
         setIsStationActive(false);
-        moveToNextRoute();
+        setCurrentStationIndex(i => i + 1);
       }, 2000);
       return;
     }
@@ -762,7 +949,7 @@ export const RouteTrackingProvider = ({ children }) => {
           // early finish: if all present -> depart early
           const studentsForThis = STUDENTS_BY_STATION[currentStation?.id] || [];
           const presentCount = studentsForThis.filter(
-            s => !!studentCheckInsRef.current[s.id] && studentCheckInsRef.current[s.id] === 'present'
+            s => studentCheckInsRef.current[s.id] === 'present'
           ).length;
 
           if (studentsForThis.length > 0 && presentCount === studentsForThis.length) {
@@ -784,7 +971,7 @@ export const RouteTrackingProvider = ({ children }) => {
       }, 1000);
     }, PRE_ARRIVAL_DELAY_MS);
 
-    // cleanup when dep changes
+    // cleanup when deps change
     return () => {
       if (timerRef.current) { 
         clearInterval(timerRef.current); 
@@ -807,7 +994,7 @@ export const RouteTrackingProvider = ({ children }) => {
 
   // ---------------- Expose context ----------------
   return (
-    <RouteTrackingContext.Provider 
+    <RouteTrackingContext.Provider
       value={{
         // status
         isTracking,
@@ -815,7 +1002,7 @@ export const RouteTrackingProvider = ({ children }) => {
         isMoving,
         currentRouteIndex,
         currentRoute,
-        routesToday: ROUTES_TODAY,
+        routesToday,
         currentStationIndex,
         currentStation,
         stations,
@@ -825,6 +1012,7 @@ export const RouteTrackingProvider = ({ children }) => {
         isStationActive,
         lastStoppedState,
         allStudentsForContact,
+        todayLabel,
 
         // actions
         startTracking,
