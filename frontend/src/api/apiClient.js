@@ -30,11 +30,11 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem("token");
+      localStorage.removeItem("user");
       window.location.href = "/login";
     }
-    // Trả về dữ liệu lỗi từ backend (nếu có) hoặc thông báo mặc định
-    const errorMessage = error.response?.data?.message || error.message || "Lỗi không xác định";
-    return Promise.reject(new Error(errorMessage));
+    // Preserve the full error object with response data
+    return Promise.reject(error);
   }
 );
 

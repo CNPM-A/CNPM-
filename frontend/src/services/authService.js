@@ -24,12 +24,22 @@ export const signUp = async (userData) => {
 
 /**
  * Đăng nhập
- * @param {Object} credentials - { email, password }
+ * @param {Object} credentials - { email, password } hoặc { phone, password }
  * @returns {Promise<Object>} - { token, user }
  */
 export const signIn = async (credentials) => {
   try {
-    const response = await apiSignIn(credentials);
+    // Chuyển đổi email thành phone nếu là số điện thoại
+    const loginData = { ...credentials };
+    if (loginData.email && /^[0-9]+$/.test(loginData.email)) {
+      loginData.phone = loginData.email;
+      delete loginData.email;
+    }
+    
+    console.log('Sending login request with data:', loginData);
+    const response = await apiSignIn(loginData);
+    console.log('Login response:', response.data);
+    
     const { token, data } = response.data;
     
     if (token) {
@@ -39,7 +49,13 @@ export const signIn = async (credentials) => {
     
     return { token, user: data.user };
   } catch (error) {
-    throw new Error(error.message || 'Đăng nhập thất bại');
+    console.error('Login error details:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    });
+    // Throw the original error object to preserve response data
+    throw error;
   }
 };
 

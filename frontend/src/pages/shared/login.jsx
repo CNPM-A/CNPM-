@@ -26,7 +26,9 @@ export default function Login() {
     setLoading(true);
 
     try {
+      console.log('Sending login request with:', formData);
       const { user } = await signIn(formData);
+      console.log('Login successful, user:', user);
       
       // Điều hướng dựa trên role
       if (user.role === 'Driver') {
@@ -39,7 +41,9 @@ export default function Login() {
         navigate('/');
       }
     } catch (err) {
-      setError(err.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+      console.error('Login error:', err);
+      const errorMsg = err.response?.data?.msg || err.response?.data?.message || err.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -54,16 +58,16 @@ export default function Login() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email
+              Email hoặc Số điện thoại
             </label>
             <input
-              type="email"
+              type="text"
               name="email"
               value={formData.email}
               onChange={handleChange}
               required
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="your.email@example.com"
+              placeholder="email@example.com hoặc 0123456789"
             />
           </div>
 
