@@ -99,8 +99,17 @@ exports.getStation = catchAsync(async (req, res, next) => {
     if (!station)
         return next(new AppError(`No station found with that ID: ${req.params.id}`, 404));
 
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
+    // Lấy ngày hiện tại theo UTC+7 (Vietnam timezone)
+    const now = new Date();
+    const vietnamOffset = 7 * 60; // UTC+7 = 420 minutes
+    const localTime = new Date(now.getTime() + vietnamOffset * 60 * 1000);
+    
+    const today = new Date(Date.UTC(
+        localTime.getUTCFullYear(),
+        localTime.getUTCMonth(),
+        localTime.getUTCDate(),
+        0, 0, 0, 0
+    ));
 
     const [studentsNearBy, activeSchedules] = await Promise.all(
         [
