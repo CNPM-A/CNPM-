@@ -1,21 +1,22 @@
 // // src/pages/driver/DriverDailySchedule.jsx
-// import React from 'react';
-// import { 
-//   PlayCircle, 
-//   PauseCircle, 
-//   Bus, 
-//   MapPin, 
-//   Clock, 
-//   Calendar, 
-//   CheckCircle, 
-//   XCircle, 
-//   Loader2 
+// import React, { useCallback } from 'react';
+// import {
+//   PlayCircle,
+//   PauseCircle,
+//   Bus,
+//   MapPin,
+//   Clock,
+//   Calendar,
+//   CheckCircle,
+//   XCircle,
+//   Loader2,
 // } from 'lucide-react';
+
 // import RouteMap from '../../components/maps/RouteMap';
 // import { useRouteTracking } from '../../context/RouteTrackingContext';
 
 // export default function DriverDailySchedule() {
-//   // Dùng context để theo dõi lộ trình (từ RouteTrackingContext)
+//   // Context theo dõi lộ trình
 //   const {
 //     isTracking,
 //     currentRouteIndex,
@@ -30,18 +31,33 @@
 //     isStationActive,
 //     startTracking,
 //     stopTracking,
+//     inTransit, // trạng thái đang di chuyển giữa 2 trạm (optional)
 //   } = useRouteTracking();
 
-//   const checkedCount = currentStudents.filter(s => studentCheckIns[s.id] === 'present').length;
+//   const checkedCount = currentStudents.filter(
+//     (s) => studentCheckIns[s.id] === 'present'
+//   ).length;
 //   const totalAtStation = currentStudents.length;
 //   const allChecked = totalAtStation > 0 && checkedCount === totalAtStation;
 //   const isCheckingIn = isStationActive && stationTimer > 0;
 //   const isWaitingToStartCheckIn = isStationActive && stationTimer === 0;
 
-//   // Biến trạng thái "xe có đang di chuyển"
-//   // Xe được coi là đang di chuyển khi đã start, không ở trạng thái trạm (isStationActive false)
-//   // và không đang trong giai đoạn check-in.
-//   const isMoving = isTracking && !isStationActive && !isCheckingIn;
+//   // Xe đang di chuyển khi đã bắt đầu, không ở trạm và không đang check-in
+//   const isMoving =
+//     isTracking && !isStationActive && !isCheckingIn && !!inTransit;
+
+//   // Safe wrapper để tránh lỗi khi context chưa sẵn sàng
+//   const safeCheckIn = useCallback(
+//     (studentId, e) => {
+//       if (e?.stopPropagation) e.stopPropagation();
+//       if (typeof checkInStudent === 'function') {
+//         checkInStudent(studentId);
+//       } else {
+//         console.error('checkInStudent is not available from context');
+//       }
+//     },
+//     [checkInStudent]
+//   );
 
 //   return (
 //     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -52,10 +68,10 @@
 //             <div>
 //               <h1 className="text-xl font-bold">Lịch trình hôm nay</h1>
 //               <p className="text-indigo-100 text-xs mt-0.5">
-//                 {new Date().toLocaleDateString('vi-VN', { 
-//                   weekday: 'long', 
-//                   day: 'numeric', 
-//                   month: 'long' 
+//                 {new Date().toLocaleDateString('vi-VN', {
+//                   weekday: 'long',
+//                   day: 'numeric',
+//                   month: 'long',
 //                 })}
 //               </p>
 //             </div>
@@ -67,40 +83,42 @@
 //                   <MapPin className="w-4 h-4" />
 //                   <div>
 //                     <div className="font-bold text-xs">TUYẾN</div>
-//                     <div className="text-xs opacity-90">{currentRoute?.name || '—'}</div>
+//                     <div className="text-xs opacity-90">
+//                       {currentRoute?.name || '—'}
+//                     </div>
 //                   </div>
 //                 </div>
 //               </div>
 
 //               {/* TRẠNG THÁI XE */}
-//               <div 
+//               <div
 //                 className={`px-3 py-2 rounded-lg text-sm font-bold shadow text-white ${
-//                   isMoving 
-//                     ? 'bg-emerald-500' 
-//                     : isCheckingIn 
-//                     ? 'bg-yellow-500' 
-//                     : isTracking 
-//                     ? 'bg-indigo-500' 
+//                   isMoving
+//                     ? 'bg-emerald-500'
+//                     : isCheckingIn
+//                     ? 'bg-yellow-500'
+//                     : isTracking
+//                     ? 'bg-indigo-500'
 //                     : 'bg-gray-500'
 //                 }`}
 //               >
 //                 <div className="flex items-center gap-2">
 //                   <Bus className="w-4 h-4" />
 //                   <div>
-//                     {isMoving 
-//                       ? 'ĐANG DI CHUYỂN' 
-//                       : isCheckingIn 
-//                       ? 'DỪNG CHECK-IN' 
-//                       : isTracking 
-//                       ? 'TẠM DỪNG' 
-//                       : 'CHƯA BẮT ĐẦU'
-//                     }
+//                     {isMoving
+//                       ? 'ĐANG DI CHUYỂN'
+//                       : isCheckingIn
+//                       ? 'DỪNG CHECK-IN'
+//                       : isTracking
+//                       ? 'TẠM DỪNG'
+//                       : 'CHƯA BẮT ĐẦU'}
 //                   </div>
 //                 </div>
 //               </div>
 
 //               {/* NÚT BẮT ĐẦU / DỪNG */}
 //               <button
+//                 type="button"
 //                 onClick={isTracking ? stopTracking : startTracking}
 //                 className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-xs shadow-lg transition-all transform hover:scale-105 ${
 //                   isTracking
@@ -126,7 +144,7 @@
 //       </header>
 
 //       <div className="max-w-7xl mx-auto px-3 py-4">
-//         {/* PHÂN CÔNG TUYẾN TRONG NGÀY – GỌN ĐẸP */}
+//         {/* DANH SÁCH TUYẾN TRONG NGÀY */}
 //         <div className="bg-white rounded-2xl shadow-xl p-3 mb-4 border-2 border-gray-200">
 //           <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
 //             <Clock className="w-5 h-5 text-indigo-600" />
@@ -165,8 +183,10 @@
 //         <div className="bg-white rounded-2xl shadow-xl overflow-hidden border-3 border-indigo-100 mb-4">
 //           <div className="h-80">
 //             <RouteMap
-//               center={currentRoute?.stations?.[0]?.position || [10.77, 106.68]}
-//               stops={(currentRoute?.stations || []).map(s => ({
+//               center={
+//                 currentRoute?.stations?.[0]?.position || [10.77, 106.68]
+//               }
+//               stops={(currentRoute?.stations || []).map((s) => ({
 //                 id: s.id,
 //                 name: s.name,
 //                 position: s.position,
@@ -181,79 +201,99 @@
 //           </div>
 //         </div>
 
-//         {/* CHECK-IN HỌC SINH – SIÊU GỌN, SIÊU ĐẸP */}
-//         {isTracking && isStationActive && currentStationIndex < (currentRoute?.stations?.length || 0) - 1 && (
-//           <div className="bg-gradient-to-br from-purple-700 to-pink-700 text-white rounded-2xl shadow-xl p-3 border-4 border-white mb-4">
-//             <div className="text-center mb-3">
-//               <h3 className="text-sm font-bold flex items-center justify-center gap-2">
-//                 <Bus className="w-5 h-5 animate-bounce" />
-//                 ĐANG TẠI: {currentStation?.name}
-//               </h3>
+//         {/* CARD CHECK-IN HỌC SINH */}
+//         {isTracking &&
+//           isStationActive &&
+//           currentStationIndex <
+//             (currentRoute?.stations?.length || 0) - 1 && (
+//             <div
+//               className="bg-gradient-to-br from-purple-700 to-pink-700 text-white rounded-2xl shadow-xl p-3 border-4 border-white mb-4 relative z-20"
+//               style={{ zIndex: 60 }}
+//               onClick={(e) => e.stopPropagation()}
+//             >
+//               <div className="text-center mb-3">
+//                 <h3 className="text-sm font-bold flex items-center justify-center gap-2">
+//                   <Bus className="w-5 h-5 animate-bounce" />
+//                   ĐANG TẠI: {currentStation?.name}
+//                 </h3>
 
-//               {isWaitingToStartCheckIn && (
-//                 <div className="mt-2 text-sm font-semibold text-yellow-200">
-//                   <Loader2 className="w-4 h-4 inline-block animate-spin mr-2" /> 
-//                   Chuẩn bị check-in...
-//                 </div>
-//               )}
+//                 {isWaitingToStartCheckIn && (
+//                   <div className="mt-2 text-sm font-semibold text-yellow-200">
+//                     <Loader2 className="w-4 h-4 inline-block animate-spin mr-2" />
+//                     Chuẩn bị check-in...
+//                   </div>
+//                 )}
+
+//                 {isCheckingIn && (
+//                   <div
+//                     className={`mt-2 text-2xl font-bold ${
+//                       stationTimer <= 10
+//                         ? 'text-red-300 animate-pulse'
+//                         : 'text-yellow-200'
+//                     }`}
+//                   >
+//                     {stationTimer}s
+//                   </div>
+//                 )}
+//               </div>
 
 //               {isCheckingIn && (
-//                 <div className={`mt-2 text-2xl font-bold ${
-//                   stationTimer <= 10 
-//                     ? 'text-red-300 animate-pulse' 
-//                     : 'text-yellow-200'
-//                 }`}>
-//                   {stationTimer}s
+//                 <div className="bg-white/20 backdrop-blur rounded-lg p-3 border-3 border-white/40">
+//                   <h4 className="text-xs font-bold text-center mb-2">
+//                     CHECK-IN ({checkedCount}/{totalAtStation})
+//                   </h4>
+
+//                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+//                     {currentStudents.map((s) => {
+//                       const status = studentCheckIns[s.id];
+//                       const already =
+//                         status === 'present' || status === 'absent';
+
+//                       return (
+//                         <div
+//                           key={s.id}
+//                           className={`p-2 rounded-lg text-center border-2 transition-all ${
+//                             status === 'present'
+//                               ? 'bg-green-500 text-white border-green-600'
+//                               : status === 'absent'
+//                               ? 'bg-red-500 text-white line-through border-red-600'
+//                               : 'bg-white/30 border-white hover:bg-white/50'
+//                           }`}
+//                         >
+//                           <div className="font-bold text-xs">{s.name}</div>
+
+//                           {!already && (
+//                             <button
+//                               type="button"
+//                               onClick={(e) => safeCheckIn(s.id, e)}
+//                               className="mt-1 bg-yellow-400 hover:bg-yellow-500 text-black text-xs px-2 py-0.5 rounded font-bold shadow hover:scale-110 transition"
+//                             >
+//                               CÓ
+//                             </button>
+//                           )}
+
+//                           {status === 'present' && (
+//                             <CheckCircle className="w-5 h-5 mx-auto mt-1" />
+//                           )}
+//                           {status === 'absent' && (
+//                             <XCircle className="w-5 h-5 mx-auto mt-1" />
+//                           )}
+//                         </div>
+//                       );
+//                     })}
+//                   </div>
+
+//                   <div className="text-center mt-6 text-lg">
+//                     {allChecked && totalAtStation > 0 && (
+//                       <div className="text-2xl font-bold text-yellow-200 animate-bounce">
+//                         ĐÃ CHECK ĐỦ – XE SẼ CHẠY SAU 3S!
+//                       </div>
+//                     )}
+//                   </div>
 //                 </div>
 //               )}
 //             </div>
-
-//             {isCheckingIn && (
-//               <div className="bg-white/20 backdrop-blur rounded-lg p-3 border-3 border-white/40">
-//                 <h4 className="text-xs font-bold text-center mb-2">
-//                   CHECK-IN ({checkedCount}/{totalAtStation})
-//                 </h4>
-//                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-//                   {currentStudents.map(s => {
-//                     const status = studentCheckIns[s.id];
-//                     return (
-//                       <div
-//                         key={s.id}
-//                         className={`p-2 rounded-lg text-center border-2 transition-all ${
-//                           status === 'present' 
-//                             ? 'bg-green-500 text-white border-green-600'
-//                             : status === 'absent'
-//                             ? 'bg-red-500 text-white line-through border-red-600'
-//                             : 'bg-white/30 border-white hover:bg-white/50'
-//                         }`}
-//                       >
-//                         <div className="font-bold text-xs">{s.name}</div>
-//                         {!status && (
-//                           <button
-//                             onClick={() => checkInStudent(s.id)}
-//                             className="mt-1 bg-yellow-400 hover:bg-yellow-500 text-black text-xs px-2 py-0.5 rounded font-bold shadow hover:scale-110 transition"
-//                           >
-//                             CÓ
-//                           </button>
-//                         )}
-//                         {status === 'present' && <CheckCircle className="w-5 h-5 mx-auto mt-1" />}
-//                         {status === 'absent' && <XCircle className="w-5 h-5 mx-auto mt-1" />}
-//                       </div>
-//                     );
-//                   })}
-//                 </div>
-
-//                 <div className="text-center mt-6 text-lg">
-//                   {allChecked && totalAtStation > 0 && (
-//                     <div className="text-2xl font-bold text-yellow-200 animate-bounce">
-//                       ĐÃ CHECK ĐỦ – XE SẼ CHẠY SAU 3S!
-//                     </div>
-//                   )}
-//                 </div>
-//               </div>
-//             )}
-//           </div>
-//         )}
+//           )}
 
 //         {/* TIẾN ĐỘ TUYẾN HIỆN TẠI */}
 //         <div className="bg-white rounded-3xl shadow-2xl p-6 border-2 border-gray-200">
@@ -284,7 +324,7 @@
 //   );
 // }
 // src/pages/driver/DriverDailySchedule.jsx
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
   PlayCircle,
   PauseCircle,
@@ -295,18 +335,23 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
+  AlertCircle,
 } from 'lucide-react';
 
 import RouteMap from '../../components/maps/RouteMap';
 import { useRouteTracking } from '../../context/RouteTrackingContext';
+import { getMySchedule } from '../../services/tripService';
 
 export default function DriverDailySchedule() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   // Context theo dõi lộ trình
   const {
     isTracking,
     currentRouteIndex,
     currentRoute,
-    routesToday,
+    routesToday = [],
     currentStationIndex,
     currentStation,
     currentStudents = [],
@@ -319,6 +364,7 @@ export default function DriverDailySchedule() {
     inTransit, // trạng thái đang di chuyển giữa 2 trạm (optional)
   } = useRouteTracking();
 
+  // Tính toán trạng thái check-in
   const checkedCount = currentStudents.filter(
     (s) => studentCheckIns[s.id] === 'present'
   ).length;
@@ -344,6 +390,60 @@ export default function DriverDailySchedule() {
     [checkInStudent]
   );
 
+  // Tự động tải lịch trình nếu context chưa có dữ liệu
+  useEffect(() => {
+    const fetchSchedule = async () => {
+      if (routesToday.length > 0 || currentRoute) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+        await getMySchedule(); // Gọi API, context sẽ cập nhật nếu có init
+      } catch (err) {
+        console.error('Không thể tải lịch trình:', err);
+        setError('Không thể tải lịch trình. Đang dùng dữ liệu mẫu.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSchedule();
+  }, [routesToday.length, currentRoute]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-indigo-600 mx-auto mb-4" />
+          <p className="text-lg font-medium text-indigo-700">Đang tải lịch trình...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state (với fallback)
+  if (error && routesToday.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
+          <AlertCircle className="w-16 h-16 text-orange-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Lỗi tải dữ liệu</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition"
+          >
+            Thử lại
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* HEADER + TUYẾN HIỆN TẠI + NÚT BẮT ĐẦU */}
@@ -357,6 +457,7 @@ export default function DriverDailySchedule() {
                   weekday: 'long',
                   day: 'numeric',
                   month: 'long',
+                  year: 'numeric',
                 })}
               </p>
             </div>
@@ -405,7 +506,8 @@ export default function DriverDailySchedule() {
               <button
                 type="button"
                 onClick={isTracking ? stopTracking : startTracking}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-xs shadow-lg transition-all transform hover:scale-105 ${
+                disabled={loading}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-xs shadow-lg transition-all transform hover:scale-105 disabled:opacity-70 ${
                   isTracking
                     ? 'bg-gradient-to-r from-red-500 to-pink-600 text-white'
                     : 'bg-gradient-to-r from-green-500 to-emerald-600 text-white'
@@ -438,7 +540,7 @@ export default function DriverDailySchedule() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             {routesToday.map((route, idx) => (
               <div
-                key={route.id}
+                key={route.id || idx} // ← Fallback idx để tránh trùng key
                 className={`p-3 rounded-lg border-2 transition-all ${
                   idx === currentRouteIndex
                     ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow scale-105'
@@ -588,7 +690,7 @@ export default function DriverDailySchedule() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {(currentRoute?.stations || []).map((s, i) => (
               <div
-                key={s.id}
+                key={s.id || i} // ← Fallback i để tránh trùng key
                 className={`p-4 rounded-xl text-center font-medium transition-all ${
                   i < currentStationIndex
                     ? 'bg-green-100 text-green-800'
