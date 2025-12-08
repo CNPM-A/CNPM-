@@ -108,40 +108,22 @@ exports.updateTrip = catchAsync(async (req, res, next) => {
 
 /**
  * Lấy các chuyến đi (trips) được phân công cho tài xế trong ngày hôm nay.
+ * Bao gồm cả trips từ schedule gốc và trips được reassign tạm thời.
  */
 exports.getMySchedule = catchAsync(async (req, res, next) => {
     const today = new Date();
-
-    const dayOfWeek = today.getDay() === 0 ? 7 : today.getDay();
-
-    // 1. Tìm tất cả các lịch trình (schedules) đang hoạt động của tài xế cho ngày hôm nay
-    const activeSchedules = await scheduleModel.find({
-        driverId: req.user.id,
-        isActive: true,
-        startDate: { $lte: today },
-        endDate: { $gte: today },
-        daysOfWeek: dayOfWeek
-    }).select('_id');
-
-    if (!activeSchedules.length) {
-        return res.status(200).json({
-            status: 'success',
-            results: 0,
-            data: [], // Trả về mảng rỗng nếu không có lịch trình nào
-        });
-    }
-
-    const scheduleIds = activeSchedules.map(s => s._id);
     const startOfDay = new Date(today.setHours(0, 0, 0, 0));
     const endOfDay = new Date(today.setHours(23, 59, 59, 999));
 
+    // Query trực tiếp trips theo driverId (bao gồm cả trips reassign)
     const todaysTrips = await Trip.find({
-        scheduleId: { $in: scheduleIds },
+        driverId: req.user.id,
         tripDate: { $gte: startOfDay, $lte: endOfDay }
-    }).populate({
-        path: 'busId',
-        select: 'licensePlate'
-    });
+    })
+        .populate('busId', 'licensePlate')
+        .populate('routeId', 'name')
+        .populate('scheduleId', 'direction')
+        .sort('tripDate');
 
     res.status(200).json({
         status: "success",
