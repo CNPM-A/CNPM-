@@ -111,14 +111,27 @@ exports.updateTrip = catchAsync(async (req, res, next) => {
  * Bao gồm cả trips từ schedule gốc và trips được reassign tạm thời.
  */
 exports.getMySchedule = catchAsync(async (req, res, next) => {
-    const today = new Date();
-    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+    // Lấy ngày hiện tại theo UTC+7 (Vietnam timezone)
+    const now = new Date();
+    const vietnamOffset = 7 * 60; // UTC+7 in minutes
+    const localTime = new Date(now.getTime() + vietnamOffset * 60 * 1000);
+    
+    // Lấy ngày bắt đầu của hôm nay (00:00 UTC+7 = 17:00 UTC ngày hôm trước)
+    const todayStart = new Date(Date.UTC(
+        localTime.getUTCFullYear(),
+        localTime.getUTCMonth(),
+        localTime.getUTCDate()
+    ));
+    todayStart.setHours(todayStart.getHours() - 7); // Trừ 7 giờ để về UTC
+    
+    // Ngày mai bắt đầu (để so sánh $lt)
+    const tomorrowStart = new Date(todayStart);
+    tomorrowStart.setDate(tomorrowStart.getDate() + 1);
 
-    // Query trực tiếp trips theo driverId (bao gồm cả trips reassign)
+    // Query trips của driver hôm nay (tripDate >= today 00:00 UTC+7 AND < tomorrow 00:00 UTC+7)
     const todaysTrips = await Trip.find({
         driverId: req.user.id,
-        tripDate: { $gte: startOfDay, $lte: endOfDay }
+        tripDate: { $gte: todayStart, $lt: tomorrowStart }
     })
         .populate('busId', 'licensePlate')
         .populate('routeId', 'name')
