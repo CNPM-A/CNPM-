@@ -23,11 +23,11 @@ export default function Drivers() {
     setLoading(true)
     setError(null)
     try {
-      const data = await AdminService.listDrivers()
+      const data = await AdminService. listDrivers()
       console.log('Drivers data:', data)
       setRows(data || [])
     } catch (err) {
-      console. error('Error:', err)
+      console.error('Error:', err)
       setError(err.message || 'Có lỗi xảy ra')
     } finally {
       setLoading(false)
@@ -40,13 +40,13 @@ export default function Drivers() {
 
   const onAdd = () => { setEditing(null); setOpen(true) }
   const onEdit = (row) => { setEditing(row); setOpen(true) }
-  const onDelete = (row) => { setConfirm({ open: true, row }) }
+  const onDelete = (row) => { setConfirm({ open:  true, row }) }
 
   const confirmDelete = async () => {
     try {
       if (confirm.row) {
-        await AdminService. deleteDriver(confirm. row._id || confirm.row.user_id)
-        notify.success('Xóa thành công')
+        await AdminService.deleteDriver(confirm.row._id || confirm.row.user_id)
+        notify. success('Xóa thành công')
         fetchData()
       }
     } catch {
@@ -62,13 +62,18 @@ export default function Drivers() {
         notify.success('Cập nhật thành công') 
       } else { 
         await AdminService.createDriver(form)
-        notify.success('Tạo thành công') 
+        notify.success('Tạo tài xế thành công') 
       }
       setOpen(false)
       setEditing(null)
-      fetchData()
+      
+      // FIX LỖI 2: Đợi backend xử lý xong rồi mới fetch lại
+      setTimeout(() => {
+        fetchData()
+      }, 800)
     } catch (error) {
-      notify.error(error.response?.data?.msg || 'Có lỗi xảy ra')
+      console.error('Error creating/updating driver:', error)
+      notify.error(error.response?.data?.msg || error.response?.data?.message || 'Có lỗi xảy ra')
     }
   }
 
@@ -100,11 +105,11 @@ export default function Drivers() {
 
       {error && (
         <Paper sx={{ p: 2, mb: 2, bgcolor: '#fee2e2', color: '#dc2626', borderRadius: 2 }}>
-          Lỗi: {error}
+          Lỗi:  {error}
         </Paper>
       )}
 
-      {loading ? (
+      {loading ?  (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
           <CircularProgress />
         </Box>
@@ -114,10 +119,10 @@ export default function Drivers() {
             <TableHead sx={{ bgcolor: '#f8fafc' }}>
               <TableRow>
                 <TableCell sx={{ fontWeight: 600 }}>Họ tên</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Số điện thoại</TableCell>
+                <TableCell sx={{ fontWeight:  600 }}>Số điện thoại</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
-                <TableCell sx={{ fontWeight: 600 }} align="center">Hành động</TableCell>
+                <TableCell sx={{ fontWeight:  600 }} align="center">Hành động</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -129,7 +134,7 @@ export default function Drivers() {
                         <Avatar sx={{ width: 36, height: 36, bgcolor: '#f59e0b' }}>
                           <PersonIcon fontSize="small" />
                         </Avatar>
-                        <Typography fontWeight={500}>{row.name}</Typography>
+                        <Typography fontWeight={500}>{row.name || '—'}</Typography>
                       </Stack>
                     </TableCell>
                     <TableCell>{row.phoneNumber || row.phone_number || '—'}</TableCell>
@@ -137,8 +142,8 @@ export default function Drivers() {
                     <TableCell>
                       <Chip 
                         size="small" 
-                        label={row.isActive !== false ? 'Hoạt động' : 'Nghỉ'} 
-                        color={row. isActive !== false ?  'success' : 'default'}
+                        label={row.isActive !== false ? 'Hoạt động' :  'Nghỉ'} 
+                        color={row.isActive !== false ? 'success' : 'default'}
                       />
                     </TableCell>
                     <TableCell align="center">
@@ -149,7 +154,7 @@ export default function Drivers() {
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Xóa">
-                          <IconButton size="small" sx={{ color: '#ef4444' }} onClick={() => onDelete(row)}>
+                          <IconButton size="small" sx={{ color:  '#ef4444' }} onClick={() => onDelete(row)}>
                             <DeleteIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
@@ -171,9 +176,9 @@ export default function Drivers() {
 
       <DriverFormDialog open={open} onClose={() => setOpen(false)} initialValue={editing} onSubmit={onSubmit} />
       <ConfirmDialog
-        open={confirm.open}
+        open={confirm. open}
         title="Xóa tài xế"
-        message={`Bạn có chắc muốn xóa tài xế "${confirm. row?.name}"? `}
+        message={`Bạn có chắc muốn xóa tài xế "${confirm.row?.name}"?`}
         cancelText="Hủy"
         okText="Xóa"
         onCancel={() => setConfirm({ open: false, row: null })}
