@@ -1,19 +1,19 @@
 // src/services/routeService.js
 import api, {
-    createRoute as apiCreateRoute,
-    deleteRoute as apiDeleteRoute,
-    getAllRoutes as apiGetAllRoutes,
-    getRoute as apiGetRoute
+  createRoute as apiCreateRoute,
+  deleteRoute as apiDeleteRoute,
+  getAllRoutes as apiGetAllRoutes,
+  getRoute as apiGetRoute
 } from '../api/apiClient';
 
 /**
  * Lấy tất cả lộ trình
- * @returns {Promise<Array>} - routes array
+ * Backend returns: { status: 'success', data: [routes] }
  */
 export const getAllRoutes = async () => {
   try {
     const response = await apiGetAllRoutes();
-    return response.data.data.routes || response.data.data;
+    return response.data.data || [];
   } catch (error) {
     throw new Error(error.message || 'Không thể lấy danh sách lộ trình');
   }
@@ -21,13 +21,12 @@ export const getAllRoutes = async () => {
 
 /**
  * Lấy chi tiết 1 lộ trình
- * @param {string} routeId - ID của route
- * @returns {Promise<Object>} - route object
+ * Backend returns: { status: 'success', data: route }
  */
 export const getRoute = async (routeId) => {
   try {
     const response = await apiGetRoute(routeId);
-    return response.data.data.route || response.data.data;
+    return response.data.data || null;
   } catch (error) {
     throw new Error(error.message || 'Không tìm thấy lộ trình');
   }
@@ -35,13 +34,12 @@ export const getRoute = async (routeId) => {
 
 /**
  * Tạo lộ trình mới (Admin/Manager)
- * @param {Object} routeData - { name, description, stations: [...], ... }
- * @returns {Promise<Object>} - created route
+ * Backend factory returns: { status: 'success', data: route }
  */
 export const createRoute = async (routeData) => {
   try {
     const response = await apiCreateRoute(routeData);
-    return response.data.data.route || response.data.data;
+    return response.data.data || null;
   } catch (error) {
     throw new Error(error.message || 'Tạo lộ trình thất bại');
   }

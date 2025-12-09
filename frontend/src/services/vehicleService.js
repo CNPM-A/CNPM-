@@ -1,22 +1,22 @@
 // src/services/vehicleService.js
 import {
-    createModel,
-    deleteModel,
-    getAllModels,
-    getOneModel,
-    updateModel
+  createModel,
+  deleteModel,
+  getAllModels,
+  getOneModel,
+  updateModel
 } from '../api/apiClient';
 
 const MODEL_NAME = 'buses';
 
 /**
  * Lấy tất cả xe bus
- * @returns {Promise<Array>} - buses array
+ * Backend returns: { status: 'success', data: [buses] }
  */
 export const getAllBuses = async () => {
   try {
     const response = await getAllModels(MODEL_NAME);
-    return response.data.data.buses || response.data.data;
+    return response.data.data || [];
   } catch (error) {
     throw new Error(error.message || 'Không thể lấy danh sách xe bus');
   }
@@ -24,13 +24,12 @@ export const getAllBuses = async () => {
 
 /**
  * Lấy chi tiết 1 xe bus
- * @param {string} busId - ID của bus
- * @returns {Promise<Object>} - bus object
+ * Backend returns: { status: 'success', data: bus }
  */
 export const getBus = async (busId) => {
   try {
     const response = await getOneModel(MODEL_NAME, busId);
-    return response.data.data.bus || response.data.data;
+    return response.data.data || null;
   } catch (error) {
     throw new Error(error.message || 'Không tìm thấy xe bus');
   }
@@ -38,13 +37,12 @@ export const getBus = async (busId) => {
 
 /**
  * Tạo xe bus mới (Admin/Manager)
- * @param {Object} busData - { licensePlate, capacity, model, year, status, ... }
- * @returns {Promise<Object>} - created bus
+ * Backend factory returns: { status: 'success', data: bus }
  */
 export const createBus = async (busData) => {
   try {
     const response = await createModel(MODEL_NAME, busData);
-    return response.data.data.bus || response.data.data;
+    return response.data.data || null;
   } catch (error) {
     throw new Error(error.message || 'Tạo xe bus thất bại');
   }
@@ -52,14 +50,12 @@ export const createBus = async (busData) => {
 
 /**
  * Cập nhật thông tin xe bus (Admin/Manager)
- * @param {string} busId - ID của bus
- * @param {Object} busData - Data cần update
- * @returns {Promise<Object>} - updated bus
+ * Backend factory returns: { status: 'success', data: updatedBus }
  */
 export const updateBus = async (busId, busData) => {
   try {
     const response = await updateModel(MODEL_NAME, busId, busData);
-    return response.data.data.bus || response.data.data;
+    return response.data.data || null;
   } catch (error) {
     throw new Error(error.message || 'Cập nhật xe bus thất bại');
   }
@@ -81,14 +77,12 @@ export const deleteBus = async (busId) => {
 
 /**
  * Lấy xe bus khả dụng (chưa được assign)
- * @returns {Promise<Array>}
+ * Backend returns: { status: 'success', data: [buses] }
  */
 export const getAvailableBuses = async () => {
   try {
-    // Có thể thêm query params: ?status=available
     const response = await getAllModels(MODEL_NAME);
-    const buses = response.data.data.buses || response.data.data;
-    // Filter ở client nếu backend chưa hỗ trợ
+    const buses = response.data.data || [];
     return buses.filter(bus => bus.status === 'available' || bus.status === 'active');
   } catch (error) {
     throw new Error(error.message || 'Không thể lấy danh sách xe khả dụng');

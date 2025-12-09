@@ -141,7 +141,7 @@
 //         'Content-Type': 'multipart/form-data',
 //       },
 //     });
-    
+
 //     return response.data.data;
 //   } catch (error) {
 //     throw new Error(error.message || 'Check-in bằng Face ID thất bại');
@@ -199,11 +199,13 @@ import {
 
 /**
  * Lấy tất cả chuyến đi (Manager/Admin)
+ * Backend returns: { status: 'success', results: N, data: [trips] }
  */
 export const getAllTrips = async () => {
   try {
     const response = await apiGetAllTrips();
-    return response.data.data.trips || response.data.data || [];
+    // Backend trả về response.data.data là array trips trực tiếp
+    return response.data.data || [];
   } catch (error) {
     console.warn('[tripService] getAllTrips failed → using mock data', error.message || error);
     return mockGetAllTripsResponse.data.trips || mockGetAllTripsResponse.data;
@@ -212,11 +214,13 @@ export const getAllTrips = async () => {
 
 /**
  * Lấy chi tiết 1 chuyến đi
+ * Backend returns: { status: 'success', data: trip }
  */
 export const getTrip = async (tripId) => {
   try {
     const response = await apiGetTrip(tripId);
-    return response.data.data.trip || response.data.data || null;
+    // Backend trả về response.data.data là trip object trực tiếp
+    return response.data.data || null;
   } catch (error) {
     console.warn(`[tripService] getTrip(${tripId}) failed → using mock`, error.message || error);
     return mockGetTripResponse.data.trip;
@@ -225,11 +229,13 @@ export const getTrip = async (tripId) => {
 
 /**
  * Lấy danh sách học sinh trong chuyến đi
+ * Backend returns: { status: 'success', data: [studentStops] }
  */
 export const getTripStudents = async (tripId) => {
   try {
     const response = await api.get(`/trips/${tripId}/students`);
-    return response.data.data.students || response.data.data || [];
+    // Backend trả về response.data.data là array studentStops trực tiếp
+    return response.data.data || [];
   } catch (error) {
     console.warn(`[tripService] getTripStudents(${tripId}) failed → using mock`, error.message || error);
     return mockGetTripStudentsResponse.data.students;
@@ -238,37 +244,43 @@ export const getTripStudents = async (tripId) => {
 
 /**
  * Lấy lịch trình của tài xế hiện tại (Driver) - API quan trọng nhất
+ * Backend returns: { status: 'success', results: N, data: [trips] }
  */
 export const getMySchedule = async () => {
   try {
     const response = await api.get('/trips/my-schedule');
+    // Backend trả về response.data.data là array trips của driver
     return response.data.data || [];
   } catch (error) {
     console.warn('[tripService] getMySchedule failed → using mock schedule', error.message || error);
-    return mockMyScheduleResponse.data; // fallback toàn bộ lịch
+    return mockMyScheduleResponse.data;
   }
 };
 
 /**
  * Tạo chuyến đi mới (Admin/Manager)
+ * Backend factory returns: { status: 'success', data: trip }
  */
 export const createTrip = async (tripData) => {
   try {
     const response = await apiCreateTrip(tripData);
-    return response.data.data.trip || response.data.data;
+    // Factory trả về response.data.data là trip object trực tiếp
+    return response.data.data || null;
   } catch (error) {
     console.warn('[tripService] createTrip failed → returning mock', error.message || error);
-    return mockGetTripResponse.data.trip; // fallback 1 chuyến mẫu
+    return mockGetTripResponse.data.trip;
   }
 };
 
 /**
  * Cập nhật chuyến đi (Admin/Manager)
+ * Backend returns: { status: 'success', data: { data: updatedTrip } }
  */
 export const updateTrip = async (tripId, tripData) => {
   try {
     const response = await apiUpdateTrip(tripId, tripData);
-    return response.data.data.trip || response.data.data;
+    // updateTrip custom trả về response.data.data.data là trip object
+    return response.data.data?.data || response.data.data || null;
   } catch (error) {
     console.warn(`[tripService] updateTrip(${tripId}) failed → returning mock`, error.message || error);
     return mockGetTripResponse.data.trip;

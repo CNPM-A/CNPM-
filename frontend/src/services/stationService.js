@@ -1,20 +1,20 @@
 // src/services/stationService.js
 import {
-    createStation as apiCreateStation,
-    deleteStation as apiDeleteStation,
-    getAllStations as apiGetAllStations,
-    getStation as apiGetStation,
-    getWalkingDirectionsToStation as apiGetWalkingDirections
+  createStation as apiCreateStation,
+  deleteStation as apiDeleteStation,
+  getAllStations as apiGetAllStations,
+  getStation as apiGetStation,
+  getWalkingDirectionsToStation as apiGetWalkingDirections
 } from '../api/apiClient';
 
 /**
  * Lấy tất cả trạm dừng
- * @returns {Promise<Array>} - [{ id, name, lat, lng, address, ... }]
+ * Backend returns: { status: 'success', data: [stations] }
  */
 export const getAllStations = async () => {
   try {
     const response = await apiGetAllStations();
-    return response.data.data.stations || response.data.data;
+    return response.data.data || [];
   } catch (error) {
     throw new Error(error.message || 'Không thể tải danh sách trạm');
   }
@@ -22,13 +22,12 @@ export const getAllStations = async () => {
 
 /**
  * Lấy 1 trạm theo ID
- * @param {string} stationId - ID của trạm
- * @returns {Promise<Object>} - station object
+ * Backend returns: { status: 'success', data: station }
  */
 export const getStationById = async (stationId) => {
   try {
     const response = await apiGetStation(stationId);
-    return response.data.data.station || response.data.data;
+    return response.data.data || null;
   } catch (error) {
     throw new Error(error.message || 'Không tìm thấy trạm');
   }
@@ -52,13 +51,12 @@ export const getWalkingDirections = async (stationId, userLat, userLng) => {
 
 /**
  * Tạo trạm mới (Admin/Manager)
- * @param {Object} stationData - { name, address, lat, lng, ... }
- * @returns {Promise<Object>} - created station
+ * Backend factory returns: { status: 'success', data: station }
  */
 export const createStation = async (stationData) => {
   try {
     const response = await apiCreateStation(stationData);
-    return response.data.data.station || response.data.data;
+    return response.data.data || null;
   } catch (error) {
     throw new Error(error.message || 'Tạo trạm thất bại');
   }

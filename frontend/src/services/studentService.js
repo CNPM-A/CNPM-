@@ -5,10 +5,13 @@ import api, { getMyStudents as apiGetMyStudents } from '../api/apiClient';
  * Lấy danh sách học sinh của phụ huynh hiện tại
  * @returns {Promise<Array>} - students array
  */
+/**
+ * Backend returns: { status: 'success', data: [students] }
+ */
 export const getMyStudents = async () => {
   try {
     const response = await apiGetMyStudents();
-    return response.data.data.students || response.data.data;
+    return response.data.data || [];
   } catch (error) {
     throw new Error(error.message || 'Không thể lấy danh sách học sinh');
   }
@@ -30,7 +33,7 @@ export const registerStudentFace = async (studentId, imageFile) => {
         'Content-Type': 'multipart/form-data',
       },
     });
-    
+
     return response.data.data;
   } catch (error) {
     throw new Error(error.message || 'Đăng ký Face ID thất bại');
@@ -42,10 +45,13 @@ export const registerStudentFace = async (studentId, imageFile) => {
  * @param {string} studentId - ID của học sinh
  * @returns {Promise<Object>}
  */
+/**
+ * Backend returns: { status: 'success', data: student }
+ */
 export const getStudent = async (studentId) => {
   try {
     const response = await api.get(`/students/${studentId}`);
-    return response.data.data.student || response.data.data;
+    return response.data.data || null;
   } catch (error) {
     throw new Error(error.message || 'Không tìm thấy học sinh');
   }
@@ -55,10 +61,13 @@ export const getStudent = async (studentId) => {
  * Lấy tất cả học sinh (Admin/Manager) - Generic API
  * @returns {Promise<Array>}
  */
+/**
+ * Backend returns: { status: 'success', data: [students] }
+ */
 export const getAllStudents = async () => {
   try {
     const response = await api.get('/students');
-    return response.data.data.students || response.data.data;
+    return response.data.data || [];
   } catch (error) {
     throw new Error(error.message || 'Không thể lấy danh sách học sinh');
   }
@@ -69,10 +78,13 @@ export const getAllStudents = async () => {
  * @param {Object} studentData - { name, grade, class, parent, ... }
  * @returns {Promise<Object>}
  */
+/**
+ * Backend factory returns: { status: 'success', data: student }
+ */
 export const createStudent = async (studentData) => {
   try {
     const response = await api.post('/students', studentData);
-    return response.data.data.student || response.data.data;
+    return response.data.data || null;
   } catch (error) {
     throw new Error(error.message || 'Tạo học sinh thất bại');
   }
@@ -84,10 +96,13 @@ export const createStudent = async (studentData) => {
  * @param {Object} studentData - Data cần update
  * @returns {Promise<Object>}
  */
+/**
+ * Backend factory returns: { status: 'success', data: updatedStudent }
+ */
 export const updateStudent = async (studentId, studentData) => {
   try {
     const response = await api.patch(`/students/${studentId}`, studentData);
-    return response.data.data.student || response.data.data;
+    return response.data.data || null;
   } catch (error) {
     throw new Error(error.message || 'Cập nhật học sinh thất bại');
   }

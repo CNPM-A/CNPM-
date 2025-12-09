@@ -666,7 +666,7 @@ export const RouteTrackingProvider = ({ children }) => {
   const transitTimeoutRef = useRef(null);
   const departingRef = useRef(false);
   const studentCheckInsRef = useRef(studentCheckIns);
-  const pollCleanupRef = useRef(() => {});
+  const pollCleanupRef = useRef(() => { });
 
   useEffect(() => { studentCheckInsRef.current = studentCheckIns; }, [studentCheckIns]);
 

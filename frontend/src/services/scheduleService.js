@@ -1,7 +1,7 @@
 // src/services/scheduleService.js
 import api, {
-    addStudentsToStop as apiAddStudentsToStop,
-    getScheduleRoute as apiGetScheduleRoute
+  addStudentsToStop as apiAddStudentsToStop,
+  getScheduleRoute as apiGetScheduleRoute
 } from '../api/apiClient';
 
 /**
@@ -35,56 +35,52 @@ export const addStudentsToStop = async (scheduleId, stationId, studentIds) => {
 };
 
 /**
- * Lấy tất cả schedules (Generic API)
- * @returns {Promise<Array>}
+ * Lấy tất cả schedules
+ * Backend returns: { status: 'success', data: [schedules] }
  */
 export const getAllSchedules = async () => {
   try {
     const response = await api.get('/schedules');
-    return response.data.data.schedules || response.data.data;
+    return response.data.data || [];
   } catch (error) {
     throw new Error(error.message || 'Không thể lấy danh sách lịch trình');
   }
 };
 
 /**
- * Lấy chi tiết 1 schedule (Generic API)
- * @param {string} scheduleId - ID của schedule
- * @returns {Promise<Object>}
+ * Lấy chi tiết 1 schedule
+ * Backend returns: { status: 'success', data: schedule }
  */
 export const getSchedule = async (scheduleId) => {
   try {
     const response = await api.get(`/schedules/${scheduleId}`);
-    return response.data.data.schedule || response.data.data;
+    return response.data.data || null;
   } catch (error) {
     throw new Error(error.message || 'Không tìm thấy lịch trình');
   }
 };
 
 /**
- * Tạo schedule mới (Admin/Manager) - Generic API
- * @param {Object} scheduleData - { route, bus, driver, startDate, endDate, ... }
- * @returns {Promise<Object>}
+ * Tạo schedule mới (Admin/Manager)
+ * Backend factory returns: { status: 'success', data: schedule }
  */
 export const createSchedule = async (scheduleData) => {
   try {
     const response = await api.post('/schedules', scheduleData);
-    return response.data.data.schedule || response.data.data;
+    return response.data.data || null;
   } catch (error) {
     throw new Error(error.message || 'Tạo lịch trình thất bại');
   }
 };
 
 /**
- * Cập nhật schedule (Admin/Manager) - Generic API
- * @param {string} scheduleId - ID của schedule
- * @param {Object} scheduleData - Data cần update
- * @returns {Promise<Object>}
+ * Cập nhật schedule (Admin/Manager)
+ * Backend factory returns: { status: 'success', data: updatedSchedule }
  */
 export const updateSchedule = async (scheduleId, scheduleData) => {
   try {
     const response = await api.patch(`/schedules/${scheduleId}`, scheduleData);
-    return response.data.data.schedule || response.data.data;
+    return response.data.data || null;
   } catch (error) {
     throw new Error(error.message || 'Cập nhật lịch trình thất bại');
   }
