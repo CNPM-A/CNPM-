@@ -180,6 +180,19 @@ module.exports = (io) => {
                         }
                     }
 
+                    if (user.role === 'Driver'){
+
+                        const trip = await Trip.findOne({
+                            _id: tripId,
+                            driverId: user.id
+                        }).select('_id');
+
+                        if (trip){
+                            isAllowed = true;
+                            tripExists = true;
+                        }
+                    }
+
                     else if (user.role === 'Parent') {
                         // Xu ly tac vu check xem co con minh trong chuyen do khong
 
