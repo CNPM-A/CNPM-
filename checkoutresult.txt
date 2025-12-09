@@ -1,0 +1,16 @@
+﻿git : Switched to branch 
+'final-complete-except-admin'
+At line:1 char:1
++ git checkout -f 
+final-complete-except-admin 
+2>&1 | Out-File -Encoding ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: (Switche  
+  d to bra...e-except-admi   
+ n':String) [], RemoteExc    
+eption
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 

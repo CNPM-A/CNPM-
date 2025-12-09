@@ -72,7 +72,7 @@ export default function AppRoutes() {
 
         {/* ===== MANAGER ROUTES ===== */}
         <Route path="/" element={<PageLayout />}>
-          <Route path="" element={<Navigate to="/parent/login" replace />} />
+          <Route path="" element={<Navigate to="/driver" replace />} />
           
           <Route path="manager">
             <Route path="" element={<Navigate to="dashboard" replace />} />

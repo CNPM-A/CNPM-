@@ -1,7 +1,7 @@
 // src/pages/shared/login.jsx
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signIn } from '../../services/authService';
+import authService from '../../services/authService';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -27,15 +27,18 @@ export default function Login() {
 
     try {
       console.log('Sending login request with:', formData);
-      const { user } = await signIn(formData);
+      await authService.login(formData);
+      
+      // Lấy user từ localStorage sau khi login thành công
+      const user = authService.getCurrentUser();
       console.log('Login successful, user:', user);
       
       // Điều hướng dựa trên role
-      if (user.role === 'Driver') {
+      if (user?.role === 'Driver') {
         navigate('/driver');
-      } else if (user.role === 'Parent') {
+      } else if (user?.role === 'Parent') {
         navigate('/parent');
-      } else if (user.role === 'Manager' || user.role === 'Admin') {
+      } else if (user?.role === 'Manager' || user?.role === 'Admin') {
         navigate('/manager');
       } else {
         navigate('/');

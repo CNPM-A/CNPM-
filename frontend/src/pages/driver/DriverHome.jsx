@@ -380,8 +380,8 @@ export default function DriverHome() {
     stopTracking,
     lastStoppedState,
     forceDepart,
-    // Context sẽ có hàm init nếu bạn dùng (khuyến khích)
     initializeTracking,
+    routePath = [], // Route polyline from shape.coordinates
   } = useRouteTracking();
 
   // Tính toán trạng thái
@@ -393,10 +393,11 @@ export default function DriverHome() {
   const isMoving = isTracking && !isStationActive && !isCheckingIn;
   const totalChecked = Object.values(studentCheckIns).filter(v => v === 'present').length;
 
-  // Tự động fetch lịch trình khi vào trang (nếu context chưa có data)
+  // Tự động fetch lịch trình khi vào trang
   useEffect(() => {
     const initSchedule = async () => {
-      if (stations.length > 0 || currentRoute) {
+      // Chỉ skip nếu đã có trip ID thực từ API (không phải mock)
+      if (currentRoute?._id) {
         setLoading(false);
         return;
       }
@@ -405,6 +406,7 @@ export default function DriverHome() {
         setLoading(true);
         setError(null);
         const schedule = await getMySchedule();
+        console.log('[DriverHome] Loaded schedule:', schedule);
 
         // Tìm chuyến đang chạy hoặc sắp tới nhất
         const now = new Date();
@@ -414,7 +416,8 @@ export default function DriverHome() {
         ) || schedule[0]; // fallback chuyến đầu tiên
 
         if (activeTrip && initializeTracking) {
-          initializeTracking(activeTrip); // context tự xử lý parse stops, students...
+          console.log('[DriverHome] Initializing with trip:', activeTrip._id);
+          await initializeTracking(activeTrip); // Fetch route stations from API
         }
       } catch (err) {
         console.error('Không thể tải lịch trình:', err);
@@ -425,7 +428,7 @@ export default function DriverHome() {
     };
 
     initSchedule();
-  }, []);
+  }, [initializeTracking]);
 
   // Hiển thị loading hoặc lỗi
   if (loading) {
@@ -580,6 +583,7 @@ export default function DriverHome() {
                 position: s.position,
                 time: s.time,
               }))}
+              routePath={routePath}
               isTracking={isTracking}
               isCheckingIn={isCheckingIn}
               isAtStation={isStationActive}

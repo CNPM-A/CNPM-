@@ -518,6 +518,7 @@ import {
 } from '../services/stationService';
 import {
   getAllRoutes,
+  getRoute,
 } from '../services/routeService';
 import {
   getScheduleRoute,
@@ -659,6 +660,7 @@ export const RouteTrackingProvider = ({ children }) => {
   const [stations, setStations] = useState(ROUTES_BASE_STATIONS); // Thêm state cho trạm
   const [routes, setRoutes] = useState([]); // Thêm state cho tuyến đường
   const [scheduleRoute, setScheduleRoute] = useState(null); // Thêm state cho tuyến lịch trình
+  const [routePath, setRoutePath] = useState([]); // Path coordinates từ shape.coordinates cho polyline
 
   // === Refs ===
   const timerRef = useRef(null);
@@ -868,6 +870,108 @@ export const RouteTrackingProvider = ({ children }) => {
     }, travelMs);
   }, [currentStationIndex, stations]);
 
+  /**
+   * Initialize tracking with a specific trip from API
+   * Called when user selects a trip from DriverDailySchedule or DriverHome auto-loads
+   * Fetches route details with stations coordinates for map drawing
+   */
+  const initializeTracking = useCallback(async (trip) => {
+    if (!trip) return;
+
+    try {
+      console.log('[Context] Initializing tracking with trip:', trip._id || trip.id);
+      
+      // Set trip ID
+      setCurrentTripId(trip._id || trip.id);
+
+      // Fetch route details with stations
+      const routeId = trip.routeId?._id || trip.routeId;
+      if (routeId) {
+        console.log('[Context] Fetching route details for:', routeId);
+        const routeDetails = await getRoute(routeId);
+        console.log('[Context] Route details:', routeDetails);
+
+        // Extract shape.coordinates if available (for polyline drawing)
+        if (routeDetails?.shape?.coordinates?.length > 0) {
+          // GeoJSON LineString format: coordinates = [[lng, lat], [lng, lat], ...]
+          // Convert to Leaflet format: [[lat, lng], [lat, lng], ...]
+          const pathCoords = routeDetails.shape.coordinates.map(coord => [coord[1], coord[0]]);
+          console.log('[Context] Route path coordinates:', pathCoords.length, 'points');
+          setRoutePath(pathCoords);
+          
+          // Create station markers from orderedStops count or evenly spaced points
+          const numStops = routeDetails.orderedStops?.length || 5;
+          const stationsFromPath = [];
+          
+          for (let i = 0; i < numStops; i++) {
+            // Evenly space stations along the path
+            const pathIndex = Math.floor((i / (numStops - 1)) * (pathCoords.length - 1));
+            const position = pathCoords[pathIndex] || pathCoords[0];
+            
+            stationsFromPath.push({
+              id: routeDetails.orderedStops?.[i] || `station-${i}`,
+              name: i === 0 ? 'Điểm xuất phát' : i === numStops - 1 ? 'Điểm đến' : `Trạm ${i}`,
+              position,
+              time: '--:--',
+            });
+          }
+          
+          console.log('[Context] Created stations from path:', stationsFromPath);
+          setStations(stationsFromPath);
+        }
+        // Fallback: try to get stations from other formats
+        else {
+          const stationsData = routeDetails?.stations || routeDetails?.stops || routeDetails?.stopTimes || [];
+          
+          if (stationsData.length > 0) {
+            const transformedStations = stationsData.map((s, i) => {
+              const station = s.stationId || s.station || s;
+              let position = null;
+              
+              if (station.location?.coordinates) {
+                position = [station.location.coordinates[1], station.location.coordinates[0]];
+              } else if (station.coordinates) {
+                position = [station.coordinates[1], station.coordinates[0]];
+              } else if (station.lat && station.lng) {
+                position = [station.lat, station.lng];
+              } else if (station.position) {
+                position = station.position;
+              }
+              
+              if (!position || position.length < 2) {
+                position = [10.77 + i * 0.01, 106.68 + i * 0.01];
+              }
+
+              return {
+                id: station._id || s._id || `station-${i}`,
+                name: station.name || `Trạm ${i + 1}`,
+                position,
+                time: s.arrivalTime || s.estimatedTime || '--:--',
+              };
+            });
+            
+            console.log('[Context] Transformed stations:', transformedStations);
+            setStations(transformedStations);
+          }
+        }
+      }
+
+      // Fetch trip students if available
+      if (trip._id) {
+        try {
+          const students = await getTripStudents(trip._id);
+          if (students?.length > 0) {
+            console.log('[Context] Loaded students:', students.length);
+          }
+        } catch (err) {
+          console.warn('[Context] Could not load trip students:', err);
+        }
+      }
+    } catch (error) {
+      console.warn('[Context] initializeTracking failed, using mock data:', error);
+    }
+  }, []);
+
   const startTracking = useCallback(async () => {
     try {
       const schedule = await getMySchedule();
@@ -1015,13 +1119,15 @@ export const RouteTrackingProvider = ({ children }) => {
         students,
         routes,
         scheduleRoute,
+        routePath, // Route polyline coordinates from shape.coordinates
 
         // Actions
         startTracking,
         stopTracking,
         checkInStudent,
         forceDepart,
-        syncDataFromBackend, // Thêm hàm sync để component gọi khi cần
+        initializeTracking, // Initialize with specific trip (fetches route stations)
+        syncDataFromBackend, // Sync để component gọi khi cần
       }}
     >
       {children}

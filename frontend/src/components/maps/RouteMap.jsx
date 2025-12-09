@@ -185,6 +185,7 @@ export default function RouteMap({
   center = [10.77, 106.68],
   zoom = 14,
   stops = [],
+  routePath: externalRoutePath = [], // Route path from context (shape.coordinates)
   isTracking = false,
   isAtStation = false,
   isCheckingIn = false,
@@ -196,7 +197,25 @@ export default function RouteMap({
   const [realPath, setRealPath] = useState([]);
 
   useEffect(() => {
+    // If routePath is provided from context (API shape.coordinates), use it directly
+    if (externalRoutePath && externalRoutePath.length > 0) {
+      console.log('[RouteMap] Using provided routePath:', externalRoutePath.length, 'points');
+      setRealPath(externalRoutePath);
+      return;
+    }
+
+    // Fallback: if no external path, try OSRM (only if stops have valid positions)
     if (stops.length < 2) {
+      setRealPath(stops.map(s => s.position));
+      return;
+    }
+
+    // Check if stops have valid coordinates (not mock)
+    const hasValidCoords = stops.every(s => 
+      s.position && Array.isArray(s.position) && s.position.length >= 2
+    );
+
+    if (!hasValidCoords) {
       setRealPath(stops.map(s => s.position));
       return;
     }
@@ -213,7 +232,7 @@ export default function RouteMap({
         }
       })
       .catch(() => setRealPath(stops.map((s) => s.position)));
-  }, [stops]);
+  }, [stops, externalRoutePath]);
 
   const stopIcon = (index, isCurrent) =>
     L.divIcon({
