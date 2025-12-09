@@ -1,0 +1,21 @@
+﻿<<<<<<< HEAD
+# API Configuration
+VITE_API_BASE_URL=https://smart-school-bus-api.onrender.com/api/v1
+
+# Socket.IO Configuration
+VITE_SOCKET_URL=https://smart-school-bus-api.onrender.com
+=======
+# Environment Variables for Frontend
+
+# API Base URL (Backend server)
+VITE_API_URL=https://smart-school-bus-api.onrender.com/api/v1
+
+# Socket.IO Server URL
+VITE_SOCKET_URL=https://smart-school-bus-api.onrender.com
+
+# App Environment
+VITE_APP_ENV=production
+
+# Optional: Google Maps API Key (náº¿u dÃ¹ng Google Maps)
+# VITE_GOOGLE_MAPS_API_KEY=your_api_key_here
+>>>>>>> origin/driver_frontend

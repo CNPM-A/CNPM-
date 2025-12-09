@@ -1,0 +1,17 @@
+﻿  Bao
+* Final-Parent-Frontend
+  Quynhhuong2405
+  fuku
+  main
+  parent-frontend
+  remotes/origin/Bao
+  remotes/origin/Final-Parent-Frontend
+  remotes/origin/HEAD -> origin/main
+  remotes/origin/KhaiTest
+  remotes/origin/Quynhhuong2405
+  remotes/origin/TrongPhuc
+  remotes/origin/driver_frontend
+  remotes/origin/fuku
+  remotes/origin/main
+  remotes/origin/nCh4u
+  remotes/origin/parent-frontend

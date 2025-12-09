@@ -2,22 +2,18 @@ import api from './api';
 
 /**
  * Logs in the user by sending credentials to the backend.
- * Upon successful login, it stores the JWT token in localStorage.
- * @param {object} credentials - The user's credentials (e.g., { username, password } or { email, password }).
+ * @param {object} credentials - { username, password } or { email, password }
  * @returns {Promise<object>} The data from the API response.
  */
-const login = async (credentials) => {
+export const login = async (credentials) => {
   try {
-    // Corrected endpoint to /auth/signin as per the backend controller
     const response = await api.post('/auth/signin', credentials);
     
-    // Corrected to look for 'accessToken' as returned by the backend
     if (response.data && response.data.accessToken) {
       const { accessToken, data } = response.data;
       
       console.log("Login success:", response.data);
 
-      // Store the token and user info in localStorage
       localStorage.setItem('token', accessToken);
       if (data && data.user) {
         localStorage.setItem('user', JSON.stringify(data.user));
@@ -33,10 +29,13 @@ const login = async (credentials) => {
   }
 };
 
+// Alias for driver frontend compatibility
+export const signIn = login;
+
 /**
  * Mock login for offline demonstration
  */
-const loginDemo = () => {
+export const loginDemo = () => {
   const mockToken = 'demo-token-12345';
   const mockUser = { username: 'demo_parent', name: 'Demo Parent' };
   localStorage.setItem('token', mockToken);
@@ -45,9 +44,9 @@ const loginDemo = () => {
 };
 
 /**
- * Logs out the user by removing the token and user data from localStorage.
+ * Logs out the user
  */
-const logout = async () => {
+export const logout = async () => {
   try {
     await api.delete('/auth/logout');
   } catch (error) {
@@ -58,19 +57,22 @@ const logout = async () => {
   }
 };
 
+// Alias for driver frontend compatibility
+export const logOut = logout;
+
 /**
  * Retrieves the currently stored JWT token.
- * @returns {string|null} The token or null if not found.
+ * @returns {string|null}
  */
-const getToken = () => {
+export const getToken = () => {
   return localStorage.getItem('token');
 };
 
 /**
  * Retrieves the currently stored user data.
- * @returns {object|null} The user object or null if not found.
+ * @returns {object|null}
  */
-const getCurrentUser = () => {
+export const getCurrentUser = () => {
   const user = localStorage.getItem('user');
   try {
     return user ? JSON.parse(user) : null;
@@ -81,16 +83,19 @@ const getCurrentUser = () => {
 };
 
 /**
- * Checks if a user is currently authenticated by verifying the presence of a token.
- * @returns {boolean} True if a token exists, false otherwise.
+ * Checks if a user is currently authenticated.
+ * @returns {boolean}
  */
-const isAuthenticated = () => {
+export const isAuthenticated = () => {
   return !!getToken();
 };
 
+// Default export for backward compatibility
 const authService = {
   login,
+  signIn,
   logout,
+  logOut,
   getToken,
   getCurrentUser,
   isAuthenticated,
