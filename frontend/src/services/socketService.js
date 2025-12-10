@@ -159,42 +159,65 @@ const SOCKET_URL =
 /**
  * Kết nối Socket.IO với token xác thực
  */
+let authErrorLogged = false; // Tránh spam log
+
 export const connectSocket = () => {
   const token = getToken();
 
   if (!token) {
-    console.warn('[Socket] Không có token → Không kết nối');
+    if (!authErrorLogged) {
+      console.warn('[Socket] Không có token → Không kết nối');
+    }
     return null;
   }
 
+  // Nếu đã kết nối rồi, return socket hiện tại
   if (socket && socket.connected) {
     return socket;
   }
+
+  // Nếu socket đang tồn tại nhưng chưa kết nối, không tạo mới
+  if (socket) {
+    return socket;
+  }
+
+  authErrorLogged = false; // Reset khi tạo socket mới
 
   socket = io(SOCKET_URL, {
     auth: { token },
     path: '/socket.io',
     reconnection: true,
-    reconnectionAttempts: 10,
-    reconnectionDelay: 3000,
+    reconnectionAttempts: 3, // Giảm từ 10 xuống 3
+    reconnectionDelay: 5000, // Tăng delay lên 5s
     timeout: 15000,
     transports: ['websocket', 'polling'],
   });
 
   // === CONNECTION EVENTS ===
   socket.on('connect', () => {
+    authErrorLogged = false;
     console.log('[Socket] Kết nối thành công:', socket.id);
   });
 
   socket.on('connect_error', (error) => {
+    // Nếu lỗi authentication, dừng reconnect ngay
+    if (error.message?.includes('Authentication') || error.message?.includes('User not found')) {
+      if (!authErrorLogged) {
+        console.error('[Socket] Lỗi xác thực, dừng kết nối:', error.message);
+        authErrorLogged = true;
+      }
+      // Dừng reconnection
+      socket.disconnect();
+      socket = null;
+      return;
+    }
+    // Các lỗi khác vẫn log bình thường
     console.error('[Socket] Kết nối thất bại:', error.message);
   });
 
   socket.on('disconnect', (reason) => {
     console.warn('[Socket] Ngắt kết nối:', reason);
-    if (reason === 'io server disconnect') {
-      socket.connect();
-    }
+    // Không tự động reconnect nếu server disconnect
   });
 
   socket.on('error', (err) => {
@@ -231,13 +254,14 @@ export const joinTripRoom = (tripId) => {
 };
 
 /**
- * Rời room của chuyến đi (backend tự rời khi join room khác)
+ * Rời room của chuyến đi
  * @param {string} tripId
  */
 export const leaveTripRoom = (tripId) => {
-  // Backend không có event riêng để leave,
-  // chỉ cần join room khác sẽ tự rời room cũ
-  console.log(`[Socket] Để rời room trip_${tripId}, join room khác hoặc disconnect`);
+  if (socket && tripId) {
+    socket.emit('leave_trip_room', tripId);
+    console.log(`[Socket] Đã gửi yêu cầu rời room: trip_${tripId}`);
+  }
 };
 
 // ===========================================
@@ -357,6 +381,28 @@ export const sendChatMessage = (receiverId, content) => {
 export const sendDriverAlert = (type, message) => {
   if (socket) {
     socket.emit('driver:send_alert', { type, message });
+  }
+};
+
+/**
+ * Bắt đầu chuyến đi (Driver)
+ * @param {string} tripId - ID của trip
+ */
+export const emitStartTrip = (tripId) => {
+  if (socket) {
+    socket.emit('driver:start_trip', { tripId });
+    console.log('[Socket] Đã gửi driver:start_trip:', tripId);
+  }
+};
+
+/**
+ * Kết thúc chuyến đi (Driver)
+ * @param {string} tripId - ID của trip
+ */
+export const emitEndTrip = (tripId) => {
+  if (socket) {
+    socket.emit('driver:end_trip', { tripId });
+    console.log('[Socket] Đã gửi driver:end_trip:', tripId);
   }
 };
 

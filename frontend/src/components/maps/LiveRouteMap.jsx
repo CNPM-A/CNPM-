@@ -41,10 +41,20 @@ function AnimatedBus({ path }) {
   </Marker>;
 }
 
-export default function LiveRouteMap({ route }) {
+export default function LiveRouteMap({ route, routeShape = null }) {
   const [realPath, setRealPath] = useState([]);
 
   useEffect(() => {
+    // Priority 1: Use backend route shape if available
+    if (routeShape?.coordinates && Array.isArray(routeShape.coordinates) && routeShape.coordinates.length > 0) {
+      const coords = routeShape.coordinates.map(c => [c[1], c[0]]);
+      setRealPath(coords);
+      console.log('[LiveRouteMap] Using backend route shape:', coords.length, 'points');
+      return;
+    }
+
+    // Priority 2: Fallback to OSRM
+    console.log('[LiveRouteMap] No backend shape, falling back to OSRM');
     const points = route.rawPath.map(p => `${p[1]},${p[0]}`).join(';');
     fetch(`https://router.project-osrm.org/route/v1/driving/${points}?overview=full&geometries=geojson`)
       .then(r => r.json())
@@ -55,7 +65,7 @@ export default function LiveRouteMap({ route }) {
         }
       })
       .catch(() => setRealPath(route.rawPath)); // fallback nếu OSRM lỗi
-  }, [route]);
+  }, [route, routeShape]);
 
   const displayPath = realPath.length > 0 ? realPath : route.rawPath;
 

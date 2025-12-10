@@ -324,7 +324,7 @@
 //   );
 // }
 // src/pages/driver/DriverDailySchedule.jsx
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import {
   PlayCircle,
   PauseCircle,
@@ -342,13 +342,29 @@ import {
 
 import RouteMap from '../../components/maps/RouteMap';
 import { useRouteTracking } from '../../context/RouteTrackingContext';
-import { getMySchedule } from '../../services/tripService';
+import { getMySchedule, getTrip, transformTripToUIFormat } from '../../services/tripService';
+import {
+  connectSocket,
+  joinTripRoom,
+  removeAllTripListeners,
+  onStudentsMarkedAbsent,
+  onBusApproaching,
+  onBusArrived,
+  onBusDeparted,
+  onAlertNew,
+  emitStartTrip,
+  emitEndTrip,
+} from '../../services/socketService';
 
 export default function DriverDailySchedule() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [trips, setTrips] = useState([]); // Danh sách trips từ API
-  const [selectedTripIndex, setSelectedTripIndex] = useState(0); // Trip được chọn
+  const [trips, setTrips] = useState([]);
+  const [selectedTripIndex, setSelectedTripIndex] = useState(0);
+  const [tripData, setTripData] = useState(null);
+  const [apiStations, setApiStations] = useState([]);
+  const [tripCompleted, setTripCompleted] = useState(false);
+  const [socketAlert, setSocketAlert] = useState(null);
 
   // Context theo dõi lộ trình
   const {
@@ -369,11 +385,23 @@ export default function DriverDailySchedule() {
     initializeTracking, // Hàm init từ context (nếu có)
   } = useRouteTracking();
 
-  // Tính toán trạng thái check-in
-  const checkedCount = currentStudents.filter(
-    (s) => studentCheckIns[s.id] === 'present'
+  // Tính toán trạng thái - Ưu tiên dùng tripData từ API
+  const effectiveStations = apiStations.length > 0 ? apiStations : (currentRoute?.stations || []);
+  const effectiveTotalStudents = tripData?.totalStudents || 0;
+  const effectiveCompletedStudents = tripData?.completedStudents || 0;
+  const effectiveCurrentStationIdx = tripData?.nextStationIndex || currentStationIndex;
+  const effectiveCurrentStation = effectiveStations[effectiveCurrentStationIdx] || currentStation;
+
+  // Students tại trạm hiện tại từ API
+  const studentsAtCurrentStation = useMemo(() => {
+    if (!tripData?.students || !effectiveCurrentStation) return [];
+    return tripData.students.filter(s => s.stationId === effectiveCurrentStation.id);
+  }, [tripData?.students, effectiveCurrentStation]);
+
+  const checkedCount = studentsAtCurrentStation.filter(
+    s => s.status === 'PICKED_UP' || s.status === 'DROPPED_OFF'
   ).length;
-  const totalAtStation = currentStudents.length;
+  const totalAtStation = studentsAtCurrentStation.length;
   const allChecked = totalAtStation > 0 && checkedCount === totalAtStation;
   const isCheckingIn = isStationActive && stationTimer > 0;
   const isWaitingToStartCheckIn = isStationActive && stationTimer === 0;
@@ -449,15 +477,85 @@ export default function DriverDailySchedule() {
   }, []);
 
   // Chọn trip để xem chi tiết / bắt đầu chạy
-  const handleSelectTrip = (index) => {
+  // NOTE: Phải định nghĩa TRƯỚC useEffect sử dụng nó
+  const handleSelectTrip = useCallback(async (index) => {
     setSelectedTripIndex(index);
-    const selectedTrip = trips[index];
+    const selectedTripItem = trips[index];
 
-    // Nếu context có hàm initializeTracking thì gọi
-    if (selectedTrip && initializeTracking) {
-      initializeTracking(selectedTrip.rawData);
+    if (!selectedTripItem?.id) return;
+
+    try {
+      // Fetch full trip details including routeId.shape, orderedStops
+      console.log('[DriverDailySchedule] Fetching trip details for:', selectedTripItem.id);
+      const tripDetail = await getTrip(selectedTripItem.id);
+
+      if (tripDetail) {
+        const transformed = transformTripToUIFormat(tripDetail);
+        setTripData(transformed);
+
+        // Set stations từ API
+        if (transformed?.stations?.length > 0) {
+          setApiStations(transformed.stations);
+          console.log('[DriverDailySchedule] API stations loaded:', transformed.stations.length);
+        }
+      }
+
+      // Gọi initializeTracking nếu context cần
+      if (selectedTripItem.rawData && initializeTracking) {
+        initializeTracking(selectedTripItem.rawData);
+      }
+    } catch (err) {
+      console.error('[DriverDailySchedule] Lỗi tải trip detail:', err);
     }
-  };
+  }, [trips, initializeTracking]);
+
+  // Auto-fetch trip details for initially selected trip
+  useEffect(() => {
+    if (trips.length > 0 && selectedTripIndex >= 0 && !tripData) {
+      handleSelectTrip(selectedTripIndex);
+    }
+  }, [trips, selectedTripIndex, tripData, handleSelectTrip]);
+
+  // === Socket.IO: Lắng nghe sự kiện real-time ===
+  useEffect(() => {
+    if (!tripData?.id) return;
+
+    const socket = connectSocket();
+    if (!socket) return;
+
+    joinTripRoom(tripData.id);
+    console.log('[DriverDailySchedule] Đã join room trip:', tripData.id);
+
+    onStudentsMarkedAbsent((data) => {
+      console.log('[Socket] trip:students_marked_absent:', data);
+      setSocketAlert({ type: 'warning', message: `${data.count || 1} học sinh được đánh dấu vắng` });
+      getTrip(tripData.id).then(detail => {
+        if (detail) setTripData(transformTripToUIFormat(detail));
+      });
+    });
+
+    onBusApproaching((data) => {
+      console.log('[Socket] bus:approaching_station:', data);
+      setSocketAlert({ type: 'info', message: `Sắp tới trạm: ${data.stationName || 'Trạm tiếp theo'}` });
+    });
+
+    onBusArrived((data) => {
+      console.log('[Socket] bus:arrived_at_station:', data);
+      setSocketAlert({ type: 'success', message: `Đã tới trạm: ${data.stationName || ''}` });
+    });
+
+    onBusDeparted((data) => {
+      console.log('[Socket] bus:departed_from_station:', data);
+      setSocketAlert({ type: 'info', message: 'Xe đã rời trạm, đang di chuyển...' });
+    });
+
+    onAlertNew((data) => {
+      console.log('[Socket] alert:new:', data);
+      setSocketAlert({ type: 'error', message: data.message || 'Có cảnh báo mới' });
+    });
+
+    return () => removeAllTripListeners();
+  }, [tripData?.id]);
 
   // Loading state
   if (loading) {
@@ -665,14 +763,15 @@ export default function DriverDailySchedule() {
           <div className="h-80">
             <RouteMap
               center={
-                currentRoute?.stations?.[0]?.position || [10.77, 106.68]
+                (apiStations[0]?.position || currentRoute?.stations?.[0]?.position) || [10.77, 106.68]
               }
-              stops={(currentRoute?.stations || []).map((s) => ({
+              stops={(apiStations.length > 0 ? apiStations : (currentRoute?.stations || [])).map((s) => ({
                 id: s.id,
                 name: s.name,
                 position: s.position,
                 time: s.time,
               }))}
+              routeShape={tripData?.routeShape || selectedTrip?.rawData?.routeId?.shape}
               isTracking={isTracking}
               currentStationIndex={currentStationIndex}
               isAtStation={isStationActive}

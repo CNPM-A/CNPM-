@@ -79,7 +79,8 @@ function AnimatedBus({
     if (persistStopped && isAtStation && position) {
       try {
         localStorage.setItem("lastStoppedBusPosition", JSON.stringify(position));
-      } catch (e) {console.error(e);
+      } catch (e) {
+        console.error(e);
         // ignore storage errors
       }
     }
@@ -91,10 +92,10 @@ function AnimatedBus({
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       if (lastStoppedPosition) {
         setPosition(lastStoppedPosition);
-        try { map.panTo(lastStoppedPosition); } catch (e) {console.error(e);}
+        try { map.panTo(lastStoppedPosition); } catch (e) { console.error(e); }
       } else if (path.length > 0) {
         setPosition(path[0]);
-        try { map.panTo(path[0]); } catch (e) {console.error(e);}
+        try { map.panTo(path[0]); } catch (e) { console.error(e); }
       }
       startRef.current = null;
       return;
@@ -105,7 +106,7 @@ function AnimatedBus({
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       if (lastStoppedPosition) {
         setPosition(lastStoppedPosition);
-        try { map.panTo(lastStoppedPosition); } catch (e) {console.error(e);  }
+        try { map.panTo(lastStoppedPosition); } catch (e) { console.error(e); }
       }
       // don't start animation
       return;
@@ -120,12 +121,12 @@ function AnimatedBus({
         pausedElapsedRef.current = total * progress;
         startRef.current = Date.now() - pausedElapsedRef.current;
         setPosition(lastStoppedPosition);
-        try { map.panTo(lastStoppedPosition); } catch (e) {console.error(e);  }
+        try { map.panTo(lastStoppedPosition); } catch (e) { console.error(e); }
       } else {
         startRef.current = Date.now();
         if (path.length > 0) {
           setPosition(path[0]);
-          try { map.panTo(path[0]); } catch (e) {console.error(e);}
+          try { map.panTo(path[0]); } catch (e) { console.error(e); }
         }
       }
     }
@@ -138,7 +139,7 @@ function AnimatedBus({
       const pos = path[idx] || path[path.length - 1] || null;
       if (pos) {
         setPosition(pos);
-        try { map.panTo(pos, { animate: true, duration: 0.6 }); } catch (e) {console.error(e); }
+        try { map.panTo(pos, { animate: true, duration: 0.6 }); } catch (e) { console.error(e); }
       }
 
       if (progress < 1) {
@@ -185,6 +186,7 @@ export default function RouteMap({
   center = [10.77, 106.68],
   zoom = 14,
   stops = [],
+  routeShape = null, // Backend route shape { type: 'LineString', coordinates: [[lng, lat], ...] }
   isTracking = false,
   isAtStation = false,
   isCheckingIn = false,
@@ -196,11 +198,23 @@ export default function RouteMap({
   const [realPath, setRealPath] = useState([]);
 
   useEffect(() => {
+    // Priority 1: Use backend route shape if available
+    if (routeShape?.coordinates && Array.isArray(routeShape.coordinates) && routeShape.coordinates.length > 0) {
+      // Backend returns [lng, lat], Leaflet needs [lat, lng]
+      const converted = routeShape.coordinates.map(coord => [coord[1], coord[0]]);
+      setRealPath(converted);
+      console.log('[RouteMap] Using backend route shape:', converted.length, 'points');
+      return;
+    }
+
+    // Priority 2: Fallback - connect stops with straight lines if < 2 stops
     if (stops.length < 2) {
       setRealPath(stops.map(s => s.position));
       return;
     }
 
+    // Priority 3: Fallback to OSRM API (only when backend shape not available)
+    console.log('[RouteMap] No backend shape, falling back to OSRM');
     const coords = stops.map((s) => `${s.position[1]},${s.position[0]}`).join(";");
 
     fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`)
@@ -213,7 +227,7 @@ export default function RouteMap({
         }
       })
       .catch(() => setRealPath(stops.map((s) => s.position)));
-  }, [stops]);
+  }, [routeShape, stops]);
 
   const stopIcon = (index, isCurrent) =>
     L.divIcon({

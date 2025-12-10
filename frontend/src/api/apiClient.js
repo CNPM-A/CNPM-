@@ -199,13 +199,23 @@ api.interceptors.response.use(
     const status = error.response?.status;
 
     // Xử lý 401 - Token hết hạn hoặc không hợp lệ
+    // NHƯNG bỏ qua cho các endpoint auth (login/signup trả 401 khi sai credentials)
     if (status === 401) {
-      console.warn("Token hết hạn hoặc không hợp lệ → Đăng xuất tự động");
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      if (window.location.pathname !== "/login") {
-        window.location.href = "/login?session=expired";
+      const requestUrl = error.config?.url || "";
+      const isAuthEndpoint = requestUrl.includes("/auth/signin") ||
+        requestUrl.includes("/auth/signup") ||
+        requestUrl.includes("/auth/login");
+
+      if (!isAuthEndpoint) {
+        // Chỉ auto-logout khi KHÔNG phải auth endpoint
+        console.warn("Token hết hạn hoặc không hợp lệ → Đăng xuất tự động");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        if (window.location.pathname !== "/login") {
+          window.location.href = "/login?session=expired";
+        }
       }
+      // Auth endpoint 401 = sai credentials, không cần logout
     }
 
     // Xử lý 403 - Không có quyền
@@ -272,7 +282,7 @@ export const getWalkingDirectionsToStation = (id, lat, lng) =>
   api.get(`/stations/${id}/walking-directions?lat=${lat}&lng=${lng}`);
 
 // ======================= STUDENT =======================
-export const getMyStudents = () => api.get("/students/my-students");
+// getMyStudents removed - API không còn sử dụng
 export const registerStudentFace = (studentId, formData) =>
   api.post(`/students/${studentId}/register-face`, formData, {
     headers: { "Content-Type": "multipart/form-data" },
@@ -294,7 +304,9 @@ export const getMyMessages = () => api.get("/messages/me");
 export const addStudentsToStop = (scheduleId, stationId, students) =>
   api.patch(`/schedules/${scheduleId}/stopTimes/${stationId}/students`, { students });
 
-export const getScheduleRoute = (id) => api.get(`/schedules/${id}/route`);
+// GET /schedules/:scheduleId/route - Lấy route shape để vẽ map
+// scheduleId lấy từ response của GET /trips/my-schedule
+export const getScheduleRoute = (scheduleId) => api.get(`/schedules/${scheduleId}/route`);
 
 // ======================= GENERIC CRUD =======================
 export const getAllModels = (model) => api.get(`/${model}`);

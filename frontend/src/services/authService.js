@@ -1,6 +1,58 @@
 // src/services/authService.js
 import { logOut as apiLogOut, refreshToken as apiRefreshToken, signIn as apiSignIn, signUp as apiSignUp } from '../api/apiClient';
 import { connectSocket, disconnectSocket } from './socketService'; // Thêm Socket.IO
+import { getMySchedule } from './tripService';
+import { getScheduleRoute } from './scheduleService';
+
+/**
+ * Prefetch route data cho driver sau khi đăng nhập
+ * Lưu vào localStorage để tránh gọi API liên tục
+ */
+const prefetchDriverRouteData = async (user) => {
+  if (user?.role !== 'driver') return; // Chỉ prefetch cho driver
+
+  try {
+    console.log('[Auth] Prefetching driver route data...');
+
+    // 1. Lấy lịch trình hôm nay
+    const schedule = await getMySchedule();
+    if (!schedule || schedule.length === 0) {
+      console.log('[Auth] No schedule for today');
+      return;
+    }
+
+    // 2. Lấy active trip
+    const now = new Date();
+    const activeTrip = schedule.find(trip =>
+      trip.status === 'IN_PROGRESS' ||
+      (trip.status === 'NOT_STARTED' && new Date(trip.tripDate) <= now)
+    ) || schedule[0];
+
+    if (!activeTrip?.scheduleId) {
+      console.log('[Auth] No scheduleId found in trip');
+      return;
+    }
+
+    // 3. Gọi getScheduleRoute để lấy route shape
+    console.log('[Auth] Fetching route for scheduleId:', activeTrip.scheduleId);
+    const routeData = await getScheduleRoute(activeTrip.scheduleId);
+
+    // 4. Cache vào localStorage
+    const today = new Date().toISOString().split('T')[0];
+    const cacheData = {
+      schedule,
+      activeTrip,
+      routeData,
+      timestamp: Date.now()
+    };
+    localStorage.setItem(`driver_route_cache_${today}`, JSON.stringify(cacheData));
+    console.log('[Auth] Driver route data cached successfully');
+
+  } catch (error) {
+    console.warn('[Auth] Prefetch failed (non-blocking):', error.message);
+    // Không throw - đây là prefetch, không block login
+  }
+};
 
 /**
  * Đăng ký tài khoản mới
@@ -19,6 +71,9 @@ export const signUp = async (userData) => {
 
       // Kết nối Socket.IO ngay sau khi đăng ký thành công
       connectSocket();
+
+      // Prefetch route data cho driver
+      prefetchDriverRouteData(data.user);
     }
 
     return { token, user: data.user };
@@ -48,6 +103,9 @@ export const signIn = async (credentials) => {
 
       // Kết nối Socket.IO ngay sau khi đăng nhập thành công
       connectSocket();
+
+      // Prefetch route data cho driver (chạy async, không block)
+      prefetchDriverRouteData(data.user);
     }
 
     return { token, user: data.user };

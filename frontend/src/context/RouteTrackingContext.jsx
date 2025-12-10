@@ -510,18 +510,14 @@ import {
 import {
   getMyMessages,
 } from '../services/messageService';
-import {
-  getMyStudents,
-} from '../services/studentService';
+// getMyStudents removed - API no longer used
 import {
   getAllStations,
 } from '../services/stationService';
 import {
   getAllRoutes,
 } from '../services/routeService';
-import {
-  getScheduleRoute,
-} from '../services/scheduleService';
+// getScheduleRoute removed - sử dụng getMySchedule từ tripService thay thế
 
 const RouteTrackingContext = createContext();
 
@@ -698,9 +694,7 @@ export const RouteTrackingProvider = ({ children }) => {
         const msgs = await getMyMessages();
         setMessages(msgs);
 
-        // Tải học sinh
-        const studentData = await getMyStudents();
-        setStudents(studentData);
+        // getMyStudents - API removed, students lấy từ trip data
 
         // Tải trạm
         const stationData = await getAllStations();
@@ -710,17 +704,14 @@ export const RouteTrackingProvider = ({ children }) => {
         const routeData = await getAllRoutes();
         setRoutes(routeData.data?.routes || []);
 
-        // Tải tuyến lịch trình
-        if (currentTripId) {
-          const scheduleRouteData = await getScheduleRoute(currentTripId);
-          setScheduleRoute(scheduleRouteData.data);
-        }
+        // getScheduleRoute removed - sử dụng getMySchedule từ tripService
       } catch (error) {
         console.warn('Sync dữ liệu từ backend thất bại → dùng mock', error);
         // Fallback không cần thiết vì state đã có mock ban đầu
       }
     }
-  }, [user, currentTripId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, currentTripId]); // Dùng user?.id thay vì user object để tránh re-render
 
   // === Socket.IO + Fallback Poll ===
   useEffect(() => {
@@ -776,7 +767,7 @@ export const RouteTrackingProvider = ({ children }) => {
 
     pollCleanupRef.current = cleanupPoll;
 
-    // Sync dữ liệu ban đầu
+    // Sync dữ liệu ban đầu - chỉ 1 lần khi tripId thay đổi
     syncDataFromBackend();
 
     return () => {
@@ -788,7 +779,8 @@ export const RouteTrackingProvider = ({ children }) => {
       leaveTripRoom(currentTripId);
       cleanupPoll();
     };
-  }, [user, currentTripId, syncDataFromBackend]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, currentTripId]); // Dùng user?.id thay vì user object để tránh re-render
 
   // === Actions ===
   const checkInStudent = useCallback(async (studentId) => {
