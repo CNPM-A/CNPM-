@@ -1,0 +1,15 @@
+﻿3c704ca sß╗¡a code kß║┐t nß╗æi socket
+35d7c75 Complete Dashboard refactoring - notifications API, hybrid mode with fallback data
+d7eb0f6 Add fallback demo data to Dashboard, Tracking, and Profile for better UX when API fails
+b35cd2d Add trip details to dashboard - vehicle license plate and driver info with call button
+95c34d3 Add bus stop markers to tracking map with stop names and arrival times
+440fd7a Add evidence photo display feature for student check-in - Modal in Dashboard, thumbnail in Notifications
+f20d53f Remove all demo/offline data and use real API endpoints only
+d7d7ace Simplify settings page with interactive toggles and remove search bar from header
+6c7fd11 Fix parent module errors: update tsconfig, add missing types, fix ParentTracking
+a0a1031 Update Parent Profile navigation and simulate Settings update requests
+56d0967 Enhance Login UI, integrate Auth API, fix CORS with proxy, and add TypeScript config
+b3b1f78 Update Parent Dashboard Quick Actions with functional links
+7a69d04 Implement Parent Settings page and fix UI colors
+85ca622 Implement Parent Profile page and link Header notifications
+20f072a Update sidebar UI and fix TypeScript errors

@@ -1,0 +1,2 @@
+﻿rm 'frontend/src/pages/parent/ParentDashboard.jsx'
+rm 'frontend/src/pages/parent/ParentTracking.jsx'

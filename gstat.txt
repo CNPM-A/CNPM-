@@ -1,0 +1,14 @@
+﻿On branch parent-frontend
+Your branch is up to date with 'origin/parent-frontend'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	branch.txt
+	currentcommit.txt
+	frontend/src/components/common/
+	gitlog.txt
+	gitlog2.txt
+	gstat.txt
+	pagelayoutstatus.txt
+
+nothing added to commit but untracked files present (use "git add" to track)

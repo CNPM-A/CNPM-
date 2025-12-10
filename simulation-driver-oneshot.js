@@ -3,7 +3,7 @@ const io = require('socket.io-client');
 // ================= CẤU HÌNH =================
 const SERVER_URL = 'https://smart-school-bus-api.onrender.com';
 const API_KEY = 'edcb1e0d-604b-4f95-b711-5e30daad380b'; // API Key của bạn
-const TRIP_ID = '6936a8b422b982cd50e00e05'; // Trip ID của bạn
+const TRIP_ID = '6938d5b16c845869e2f520ce'; // Trip ID của bạn
 
 
 // Tốc độ: 1 giây gửi tọa độ 1 lần mili giây 
