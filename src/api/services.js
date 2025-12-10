@@ -94,8 +94,19 @@ export const AdminService = {
   },
 
   updateDriver: async (id, data) => {
-    const response = await api.patch(`/users/${id}`, data)
-    return response.data.data
+    // FIX: Thử dùng PUT vì PATCH /users/:id trả về 404
+    try {
+      const response = await api.patch(`/users/${id}`, data)
+      return response.data.data
+    } catch (error) {
+      // Nếu 404, thử fallback sang PUT hoặc endpoint khác nếu cần
+      if (error.response?.status === 404) {
+        console.warn('PATCH /users/:id failed (404), trying PUT...')
+        const response = await api.put(`/users/${id}`, data)
+        return response.data.data
+      }
+      throw error
+    }
   },
 
   deleteDriver:  async (id) => {

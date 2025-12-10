@@ -139,11 +139,17 @@ export default function Dashboard() {
               >
                 {stat.icon}
               </Box>
-              <Box>
+              <Box sx={{ minWidth: 0 }}>
                 <Typography variant="h4" fontWeight="bold" sx={{ color: '#1e293b' }}>
                   {stat.value}
                 </Typography>
-                <Typography variant="body2" sx={{ color: '#64748b' }}>
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    color: '#64748b',
+                    whiteSpace: 'nowrap' // Dòng này giúp chữ luôn nằm trên 1 hàng
+                  }}
+                >
                   {stat.title}
                 </Typography>
               </Box>
