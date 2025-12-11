@@ -385,7 +385,7 @@ export const sendChatMessage = (receiverId, content) => {
 
 /**
  * Gửi cảnh báo SOS (Driver)
- * @param {string} type - Loại cảnh báo (SOS, EMERGENCY, etc.)
+ * @param {string} type - Loại cảnh báo (SOS, LATE, OTHER, etc.)
  * @param {string} message - Nội dung cảnh báo
  */
 export const sendDriverAlert = (type, message) => {
@@ -393,6 +393,26 @@ export const sendDriverAlert = (type, message) => {
     socket.emit('driver:send_alert', { type, message });
   }
 };
+
+/**
+ * Lắng nghe tin nhắn chat từ server
+ */
+export const onChatReceiveMessage = (callback) => {
+  if (socket) {
+    socket.on('chat:receive_message', callback);
+  }
+};
+
+/**
+ * Lắng nghe lỗi chat
+ */
+export const onChatError = (callback) => {
+  if (socket) {
+    socket.on('chat:error', callback);
+  }
+};
+
+
 
 /**
  * Bắt đầu chuyến đi (Driver)

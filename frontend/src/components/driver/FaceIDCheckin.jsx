@@ -76,14 +76,15 @@ export default function FaceIDCheckin({ student, onCheckIn, isCheckedIn, tripId,
             console.log('[FaceIDCheckin] Calling checkInWithFace API...', { tripId, stationId });
             const result = await checkInWithFace(tripId, imageFile, stationId);
 
-            console.log('[FaceIDCheckin] API response:', result);
+            console.log('[FaceIDCheckin] ✅ API response:', result);
 
             // Success - call onCheckIn with student ID from API response
-            const recognizedStudentId = result?.studentId || student?.id;
+            const recognizedStudentId = result?.studentId || result?.student?._id || student?.id;
             setResultMessage({ type: 'success', text: '✅ Nhận diện thành công!' });
 
-            // Notify parent component
+            // Notify parent component to refresh UI
             if (onCheckIn && recognizedStudentId) {
+                console.log('[FaceIDCheckin] Calling onCheckIn with studentId:', recognizedStudentId);
                 onCheckIn(recognizedStudentId);
             }
 
@@ -95,8 +96,26 @@ export default function FaceIDCheckin({ student, onCheckIn, isCheckedIn, tripId,
             }, 1500);
 
         } catch (err) {
-            console.error('[FaceIDCheckin] Error:', err);
-            const errorMsg = err.message || 'Nhận diện khuôn mặt thất bại';
+            console.error('[FaceIDCheckin] ❌ Error:', err);
+
+            // Parse backend error messages
+            let errorMsg = 'Nhận diện khuôn mặt thất bại';
+
+            if (err.message) {
+                // Common error patterns from backend
+                if (err.message.includes('No face')) {
+                    errorMsg = '⚠️ Không phát hiện khuôn mặt';
+                } else if (err.message.includes('Multiple faces')) {
+                    errorMsg = '⚠️ Phát hiện nhiều khuôn mặt';
+                } else if (err.message.includes('not recognized') || err.message.includes('not found')) {
+                    errorMsg = '❌ Khuôn mặt không được ghi nhận';
+                } else if (err.message.includes('already checked')) {
+                    errorMsg = 'ℹ️ Học sinh đã check-in';
+                } else {
+                    errorMsg = err.message;
+                }
+            }
+
             setResultMessage({ type: 'error', text: `❌ ${errorMsg}` });
             setIsProcessing(false);
         }
@@ -147,8 +166,8 @@ export default function FaceIDCheckin({ student, onCheckIn, isCheckedIn, tripId,
 
                     {resultMessage && (
                         <div className={`px-4 py-3 rounded-lg mb-4 text-sm font-semibold text-center ${resultMessage.type === 'success'
-                                ? 'bg-green-100 border border-green-400 text-green-700'
-                                : 'bg-red-100 border border-red-400 text-red-700'
+                            ? 'bg-green-100 border border-green-400 text-green-700'
+                            : 'bg-red-100 border border-red-400 text-red-700'
                             }`}>
                             {resultMessage.text}
                         </div>

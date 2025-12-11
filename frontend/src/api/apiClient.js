@@ -245,6 +245,8 @@ export const refreshToken = () => api.post("/auth/token");
 // ======================= USER =======================
 export const getMe = () => api.get("/users/me");
 export const updateMe = (data) => api.patch("/users/me", data);
+// Driver contacts - Get parent contact info for driver's students
+export const getDriverContacts = () => api.get("/users/driver/contacts");
 
 // ======================= TRIP =======================
 export const getMySchedule = () => api.get("/trips/my-schedule");

@@ -11,7 +11,8 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useRouteTracking } from '../../context/RouteTrackingContext';
-import { getMySchedule } from '../../services/tripService';
+import { getDriverContacts } from '../../api/apiClient';
+import { sendChatMessage, onChatReceiveMessage, onChatError, connectSocket } from '../../services/socketService';
 
 // Biến toàn cục để tạo ID tin nhắn duy nhất
 let messageIdCounter = Date.now();
@@ -24,7 +25,6 @@ export default function DriverContacts() {
     isTracking,
     currentStation,
     studentCheckIns,
-    allStudentsForContact = [],
   } = useRouteTracking();
 
   const [loading, setLoading] = useState(true);
@@ -33,7 +33,8 @@ export default function DriverContacts() {
   const [activeChat, setActiveChat] = useState(null);
   const [messageSearch, setMessageSearch] = useState('');
   const [newMessage, setNewMessage] = useState('');
-  
+  const [contacts, setContacts] = useState([]); // ← Store parent contacts from API
+
   const [messages, setMessages] = useState({
     admin: [
       { id: 1, sender: 'admin', text: 'Chuyến đi hôm nay thế nào anh?', time: '07:20' },
@@ -43,24 +44,100 @@ export default function DriverContacts() {
 
   const messagesEndRef = useRef(null);
 
-  // Tải dữ liệu nếu chưa có
+  // ✅ Load contacts from API
   useEffect(() => {
-    const initData = async () => {
-      if (allStudentsForContact.length > 0) {
-        setLoading(false);
-        return;
-      }
+    const loadContacts = async () => {
       try {
         setLoading(true);
-        await getMySchedule();
+        console.log('[DriverContacts] Fetching contacts from API...');
+        const response = await getDriverContacts();
+        console.log('[DriverContacts] API response:', response);
+
+        // Transform backend format to UI format
+        const contactsData = response.data?.data || [];
+
+        // Flatten: each student becomes a separate contact record
+        const flatContacts = [];
+        contactsData.forEach(parent => {
+          parent.students.forEach(student => {
+            flatContacts.push({
+              id: student.studentId,
+              name: student.studentName,
+              class: student.grade,
+              parentId: parent.parentId,
+              parentName: parent.parentName,
+              parentPhone: parent.phoneNumber,
+              avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${student.studentName}`,
+            });
+          });
+        });
+
+        setContacts(flatContacts);
+        console.log('[DriverContacts] ✅ Loaded', flatContacts.length, 'contacts');
       } catch (err) {
-        console.warn('Không thể tải danh bạ → dùng dữ liệu mẫu');
+        console.error('[DriverContacts] Failed to load contacts:', err);
+        setContacts([]);
       } finally {
         setLoading(false);
       }
     };
-    initData();
-  }, [allStudentsForContact.length]);
+
+    loadContacts();
+  }, []);
+
+  // ✅ Socket chat listeners
+  useEffect(() => {
+    const socket = connectSocket();
+    if (!socket) return;
+
+    // Listen for incoming messages
+    const handleReceiveMessage = (message) => {
+      console.log('[DriverContacts] ✅ Received message:', message);
+
+      // Determine thread ID based on sender
+      let threadId;
+      if (message.senderId === 'admin' || !message.senderId) {
+        threadId = 'admin';
+      } else {
+        // Find student by parent ID
+        const student = contacts.find(c => c.parentId === message.senderId);
+        threadId = student ? `parent-${student.id}` : `user-${message.senderId}`;
+      }
+
+      // Add to messages
+      const msg = {
+        id: message._id || Date.now(),
+        sender: message.senderId ? 'parent' : 'driver',
+        text: message.content,
+        time: new Date(message.createdAt || Date.now()).toTimeString().slice(0, 5),
+      };
+
+      setMessages(prev => {
+        const updated = { ...prev };
+        if (!updated[threadId]) updated[threadId] = [];
+        // Check if message already exists
+        if (!updated[threadId].some(m => m.id === msg.id)) {
+          updated[threadId] = [...updated[threadId], msg];
+        }
+        return updated;
+      });
+    };
+
+    const handleChatError = (error) => {
+      console.error('[DriverContacts] ❌ Chat error:', error);
+      alert('Lỗi gửi tin nhắn: ' + error);
+    };
+
+    onChatReceiveMessage(handleReceiveMessage);
+    onChatError(handleChatError);
+
+    return () => {
+      if (socket) {
+        socket.off('chat:receive_message', handleReceiveMessage);
+        socket.off('chat:error', handleChatError);
+      }
+    };
+  }, [contacts]);
 
   // Load tin nhắn từ localStorage
   useEffect(() => {
@@ -118,15 +195,15 @@ export default function DriverContacts() {
 
   // Tìm kiếm học sinh
   const filteredStudents = useMemo(() => {
-    if (!searchTerm) return allStudentsForContact;
+    if (!searchTerm) return contacts;
     const lower = searchTerm.toLowerCase();
-    return allStudentsForContact.filter(s =>
+    return contacts.filter(s =>
       s.name.toLowerCase().includes(lower) ||
       s.class?.toLowerCase().includes(lower) ||
       s.parentName?.toLowerCase().includes(lower) ||
       s.parentPhone?.includes(searchTerm)
     );
-  }, [searchTerm, allStudentsForContact]);
+  }, [searchTerm, contacts]);
 
   // Trạng thái học sinh
   const getStudentStatus = (studentId) => {
@@ -141,9 +218,9 @@ export default function DriverContacts() {
     const base = 'px-3 py-1 rounded-full text-xs font-bold';
     switch (status) {
       case 'onboard': return <span className={`${base} bg-green-100 text-green-800`}>Đã lên</span>;
-      case 'absent':  return <span className={`${base} bg-red-100 text-red-800`}>Vắng</span>;
-      case 'late':    return <span className={`${base} bg-yellow-100 text-yellow-800`}>Trễ</span>;
-      default:        return <span className={`${base} bg-gray-100 text-gray-700`}>Chưa</span>;
+      case 'absent': return <span className={`${base} bg-red-100 text-red-800`}>Vắng</span>;
+      case 'late': return <span className={`${base} bg-yellow-100 text-yellow-800`}>Trễ</span>;
+      default: return <span className={`${base} bg-gray-100 text-gray-700`}>Chưa</span>;
     }
   };
 
@@ -155,32 +232,44 @@ export default function DriverContacts() {
     setNewMessage('');
   };
 
-  // Gửi tin nhắn – ĐÃ SỬA LỖI TRÙNG ID + GỬI 2 LẦN
+  // ✅ Gửi tin nhắn - Socket + localStorage
   const sendMessage = () => {
     if (!newMessage.trim() || !activeChat) return;
 
     const now = new Date().toTimeString().slice(0, 5);
     const msg = {
-      id: generateUniqueId(), // ← Đảm bảo ID luôn duy nhất
+      id: generateUniqueId(),
       sender: 'driver',
       text: newMessage.trim(),
       time: now,
     };
 
-    // Cập nhật state ngay lập tức
+    // Update state immediately (optimistic UI)
     setMessages(prev => ({
       ...prev,
       [activeChat]: [...(prev[activeChat] || []), msg]
     }));
 
-    // Lưu vào localStorage + broadcast
+    // ✅ Emit socket event
+    if (activeChat === 'admin') {
+      // Send to admin (receiverId = null means admin)
+      sendChatMessage(null, newMessage.trim());
+    } else {
+      // Extract student ID from activeChat (format: "parent-{studentId}")
+      const studentId = activeChat.replace('parent-', '');
+      const student = contacts.find(c => c.id === studentId);
+      if (student?.parentId) {
+        sendChatMessage(student.parentId, newMessage.trim());
+      }
+    }
+
+    // Save to localStorage for persistence
     try {
       const KEY = 'chat_messages';
       const raw = localStorage.getItem(KEY);
       const store = raw ? JSON.parse(raw) : {};
       if (!store[activeChat]) store[activeChat] = [];
-      
-      // Kiểm tra trùng ID (dù đã dùng counter thì vẫn an toàn)
+
       if (!store[activeChat].some(m => m.id === msg.id)) {
         store[activeChat].push(msg);
         localStorage.setItem(KEY, JSON.stringify(store));
@@ -205,7 +294,7 @@ export default function DriverContacts() {
 
   const getChatTitle = () => {
     if (activeChat === 'admin') return 'Chat với Quản Lý (Admin)';
-    const student = allStudentsForContact.find(s => `parent-${s.id}` === activeChat);
+    const student = contacts.find(s => `parent-${s.id}` === activeChat);
     return student ? `Chat với ${student.parentName} (PH ${student.name})` : 'Chat';
   };
 
@@ -221,13 +310,13 @@ export default function DriverContacts() {
     );
   }
 
-  if (!loading && allStudentsForContact.length === 0) {
+  if (!loading && contacts.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100 flex items-center justify-center p-6">
         <div className="bg-white rounded-2xl shadow-xl p-10 max-w-md text-center">
           <AlertCircle className="w-20 h-20 text-orange-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-3">Chưa có dữ liệu học sinh</h2>
-          <p className="text-gray-600 mb-6">Vui lòng bắt đầu chuyến đi để tải danh bạ phụ huynh</p>
+          <h2 className="text-2xl font-bold text-gray-800 mb-3">Chưa có dữ liệu liên hệ</h2>
+          <p className="text-gray-600 mb-6">Không thể tải danh sách phụ huynh. Vui lòng thử lại.</p>
           <button
             onClick={() => window.location.reload()}
             className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition"
@@ -371,11 +460,10 @@ export default function DriverContacts() {
                 ) : (
                   filteredMessages.map((msg) => (
                     <div key={msg.id} className={`flex ${msg.sender === 'driver' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-xs md:max-w-md px-5 py-3 rounded-3xl shadow-lg ${
-                        msg.sender === 'driver'
-                          ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white'
-                          : 'bg-gray-200 text-gray-800'
-                      }`}>
+                      <div className={`max-w-xs md:max-w-md px-5 py-3 rounded-3xl shadow-lg ${msg.sender === 'driver'
+                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white'
+                        : 'bg-gray-200 text-gray-800'
+                        }`}>
                         <p className="text-base">{msg.text}</p>
                         <p className={`text-xs mt-2 opacity-80 ${msg.sender === 'driver' ? 'text-indigo-200' : 'text-gray-500'}`}>
                           {msg.time}

@@ -68,7 +68,7 @@
 //       const raw = localStorage.getItem(KEY);
 //       let store = raw ? JSON.parse(raw) : {};
 //       if (!store[threadId]) store[threadId] = [];
-      
+
 //       if (!store[threadId].some(m => m.id === msgObj.id)) {
 //         store[threadId].push(msgObj);
 //         localStorage.setItem(KEY, JSON.stringify(store));
@@ -89,7 +89,7 @@
 //     const typeLabel = incidentTypes.find(t => t.id === selectedIncident)?.label || 'Không xác định';
 //     const text = `BÁO CÁO SỰ CỐ: ${typeLabel} — ${incidentNote || 'Không ghi chú'}`;
 //     const location = currentStation?.name ? ` (Tại: ${currentStation.name})` : '';
-    
+
 //     const msg = { 
 //       id: Date.now(), 
 //       sender: 'driver', 
@@ -99,7 +99,7 @@
 //     };
 
 //     pushChatMessage('admin', msg);
-    
+
 //     // Gửi luôn cho phụ huynh nếu đang trong chuyến
 //     if (currentRoute && allStudentsForContact.length > 0) {
 //       const parents = allStudentsForContact.slice(0, 5); // giới hạn để không spam
@@ -407,6 +407,7 @@ import {
 import { useRouteTracking } from '../../context/RouteTrackingContext';
 import { useAuth } from '../../hooks/useAuth';
 import { getMySchedule } from '../../services/tripService';
+import { sendDriverAlert, connectSocket, getSocket } from '../../services/socketService';
 
 const quickMessages = [
   "Xe đang đến trạm đón",
@@ -417,12 +418,16 @@ const quickMessages = [
   "Xe đang di chuyển bình thường",
 ];
 
+// ✅ Alert types mapped to backend enum: SOS, LATE, OFF_ROUTE, SPEEDING, OTHER
 const incidentTypes = [
-  { id: 'traffic',    label: 'Kẹt xe',          icon: AlertTriangle },
-  { id: 'breakdown',  label: 'Hỏng xe',         icon: Siren },
-  { id: 'accident',   label: 'Tai nạn',         icon: AlertTriangle },
-  { id: 'weather',    label: 'Thời tiết xấu',   icon: MapPin },
-  { id: 'other',      label: 'Khác',            icon: MessageCircle },
+  // SOS: Hư lốp, tai nạn, thời tiết xấu
+  { id: 'breakdown', label: 'Hư lốp', icon: Siren, alertType: 'SOS' },
+  { id: 'accident', label: 'Tai nạn', icon: AlertTriangle, alertType: 'SOS' },
+  { id: 'weather', label: 'Thời tiết xấu', icon: MapPin, alertType: 'SOS' },
+  // LATE: Kẹt xe
+  { id: 'traffic', label: 'Kẹt xe', icon: AlertTriangle, alertType: 'LATE' },
+  // OTHER: Khác
+  { id: 'other', label: 'Khác', icon: MessageCircle, alertType: 'OTHER' },
 ];
 
 export default function DriverOperations() {
@@ -433,12 +438,43 @@ export default function DriverOperations() {
     routesToday = [],
     allStudentsForContact = [],
     studentCheckIns = {},
+    currentTripId, // ← Get current trip ID from context
+    isTracking,    // ← Check if trip is active
   } = useRouteTracking();
 
   const [loading, setLoading] = useState(true);
   const [showIncidentModal, setShowIncidentModal] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState('');
   const [incidentNote, setIncidentNote] = useState('');
+  const [alertStatus, setAlertStatus] = useState(null); // For showing alert feedback
+
+  // ✅ Check if driver can send alerts (must have active trip)
+  const canSendAlert = Boolean(currentTripId && isTracking);
+
+  // ✅ Connect socket and listen for alert responses
+  useEffect(() => {
+    const socket = connectSocket();
+    if (!socket) return;
+
+    // Listen for success response
+    socket.on('alert:success', (message) => {
+      console.log('[DriverOperations] ✅ Alert success:', message);
+      setAlertStatus({ type: 'success', message: message || 'Đã gửi cảnh báo!' });
+      setTimeout(() => setAlertStatus(null), 3000);
+    });
+
+    // Listen for error response
+    socket.on('alert:error', (message) => {
+      console.error('[DriverOperations] ❌ Alert error:', message);
+      setAlertStatus({ type: 'error', message: message || 'Lỗi gửi cảnh báo' });
+      setTimeout(() => setAlertStatus(null), 3000);
+    });
+
+    return () => {
+      socket.off('alert:success');
+      socket.off('alert:error');
+    };
+  }, []);
 
   // Tự động tải lịch trình nếu context chưa có dữ liệu
   useEffect(() => {
@@ -488,36 +524,40 @@ export default function DriverOperations() {
 
   const nowTime = () => new Date().toTimeString().slice(0, 5);
 
-  // Báo sự cố
+  // ✅ Báo sự cố - emit socket event to backend
   const handleSendIncident = () => {
     if (!selectedIncident) return;
 
-    const typeLabel = incidentTypes.find(t => t.id === selectedIncident)?.label || 'Không xác định';
-    const text = `BÁO CÁO SỰ CỐ: ${typeLabel} — ${incidentNote || 'Không ghi chú'}`;
-    const location = currentStation?.name ? ` (Tại: ${currentStation.name})` : '';
-
-    const msg = {
-      id: Date.now(),
-      sender: 'driver',
-      text: text + location,
-      time: nowTime(),
-      type: 'incident'
-    };
-
-    pushChatMessage('admin', msg);
-
-    // Gửi cảnh báo cho vài phụ huynh (giới hạn spam)
-    if (currentRoute && allStudentsForContact.length > 0) {
-      const parents = allStudentsForContact.slice(0, 5);
-      parents.forEach(p => {
-        pushChatMessage(`parent-${p.id}`, {
-          ...msg,
-          text: `[Cảnh báo] ${text} — Xe đang gặp sự cố, vui lòng theo dõi.`
-        });
+    // ✅ Check if trip is active before sending
+    if (!canSendAlert) {
+      setAlertStatus({
+        type: 'error',
+        message: 'Vui lòng bắt đầu chuyến đi trước khi báo cáo sự cố!'
       });
+      setTimeout(() => setAlertStatus(null), 3000);
+      return;
     }
 
-    alert(`ĐÃ GỬI BÁO CÁO: ${typeLabel}\n${incidentNote || 'Không có ghi chú'}`);
+    const incident = incidentTypes.find(t => t.id === selectedIncident);
+    if (!incident) return;
+
+    // Get alert type (SOS, LATE, OTHER)
+    const alertType = incident.alertType;
+    const typeLabel = incident.label;
+
+    // Build message
+    const location = currentStation?.name ? ` (Tại: ${currentStation.name})` : '';
+    const message = `${typeLabel}${incidentNote ? ': ' + incidentNote : ''}${location}`;
+
+    console.log('[DriverOperations] 🚨 Sending alert:', { type: alertType, message });
+
+    // ✅ Emit socket event to backend
+    sendDriverAlert(alertType, message);
+
+    // Show sending notification
+    setAlertStatus({ type: 'info', message: 'Đang gửi cảnh báo...' });
+
+    // Close modal
     setShowIncidentModal(false);
     setSelectedIncident('');
     setIncidentNote('');

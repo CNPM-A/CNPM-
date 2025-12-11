@@ -40,7 +40,6 @@ export default function DriverHome() {
   const [error, setError] = useState(null);
   const [tripData, setTripData] = useState(null);
   const [apiStations, setApiStations] = useState([]);
-  const [tripCompleted, setTripCompleted] = useState(false);
   const [socketAlert, setSocketAlert] = useState(null); // For toast notifications
 
   const {
@@ -54,11 +53,19 @@ export default function DriverHome() {
     initializeTracking,
   } = useRouteTracking();
 
+  // ✅ Derive tripCompleted from backend status - persists after refresh!
+  const tripCompleted = tripData?.status === 'COMPLETED';
+
   // Tính toán trạng thái - CHỈ dùng tripData từ API (không fallback mock)
   const effectiveStations = apiStations; // Chỉ dùng API data
   const effectiveTotalStudents = tripData?.totalStudents || 0;
   const effectiveCompletedStudents = tripData?.completedStudents || 0;
-  const effectiveCurrentStationIdx = tripData?.nextStationIndex ?? 0; // Chỉ dùng API data
+
+  // When trip is completed, show as last station index to display "n/n"
+  const effectiveCurrentStationIdx = tripCompleted
+    ? apiStations.length - 1  // Last station when completed
+    : (tripData?.nextStationIndex ?? 0); // Normal flow
+
   const effectiveCurrentStation = effectiveStations[effectiveCurrentStationIdx] || null;
 
   // Memoize stops array để tránh re-render không cần thiết
@@ -114,11 +121,17 @@ export default function DriverHome() {
   const refreshTripData = async () => {
     if (!tripData?.id) return;
     try {
+      console.log('[DriverHome] 🔄 Refreshing trip data...');
       const tripDetail = await getTrip(tripData.id);
       if (tripDetail) {
         const transformed = transformTripToUIFormat(tripDetail);
         setTripData(transformed);
-        console.log('[DriverHome] Trip data refreshed');
+        // ✅ IMPORTANT: Also refresh stations to update student status
+        const stations = transformed?.stations || [];
+        if (stations.length > 0) {
+          setApiStations(stations);
+        }
+        console.log('[DriverHome] ✅ Trip data refreshed successfully');
       }
     } catch (err) {
       console.error('[DriverHome] Refresh trip data failed:', err);
@@ -131,17 +144,36 @@ export default function DriverHome() {
       console.error('[DriverHome] No tripId for check-in');
       return;
     }
+
     try {
+      console.log('[DriverHome] 👦 Checking in student:', studentId);
+
+      // Call API
       await checkIn(tripData.id, {
         studentId,
         stationId: effectiveCurrentStation?.id,
       });
-      console.log('[DriverHome] Check-in success for student:', studentId);
-      // Refresh tripData để lấy status mới từ server
+
+      console.log('[DriverHome] ✅ Check-in API success');
+
+      // ✅ IMPORTANT: Refresh trip data to get updated student status
       await refreshTripData();
+
+      // Show success notification
+      setSocketAlert({
+        type: 'success',
+        message: '✅ Check-in thành công!'
+      });
+
+      // Auto-hide after 2 seconds
+      setTimeout(() => setSocketAlert(null), 2000);
+
     } catch (err) {
       console.error('[DriverHome] Check-in failed:', err);
-      setSocketAlert({ type: 'error', message: 'Check-in thất bại: ' + (err.message || 'Lỗi không xác định') });
+      setSocketAlert({
+        type: 'error',
+        message: 'Check-in thất bại: ' + (err.message || 'Lỗi không xác định')
+      });
     }
   };
 
@@ -176,7 +208,9 @@ export default function DriverHome() {
         const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
         const routeCacheKey = `driver_route_cache_${today}`;
         const tripCacheKey = `driver_trip_${today}`;
-        const cacheExpiry = 30 * 60 * 1000; // 30 phút
+        const cacheExpiry = 5 * 60 * 1000; // ✅ 5 phút (giảm từ 30 phút)
+
+        let usedCache = false;
 
         // 1. Kiểm tra cache từ login prefetch (ưu tiên cao nhất)
         const routeCache = localStorage.getItem(routeCacheKey);
@@ -185,7 +219,7 @@ export default function DriverHome() {
             const { routeData, activeTrip, timestamp, version } = JSON.parse(routeCache);
             // Kiểm tra version và expiry
             if (Date.now() - timestamp < cacheExpiry && routeData && version === CACHE_VERSION) {
-              console.log('[DriverHome] Using login prefetch cache v' + version);
+              console.log('[DriverHome] ✅ Using cache (will refresh in background)');
 
               // Tạo map studentStops -> stationId
               const stationStudentsMap = {};
@@ -208,6 +242,7 @@ export default function DriverHome() {
                 id: activeTrip?._id,
                 routeName: routeData.routeName,
                 routeShape: routeData.shape,
+                status: activeTrip?.status, // ← IMPORTANT: Include status from cache
                 stations: routeData.stops?.map((stop, idx) => {
                   const stationId = String(stop._id);
                   return {
@@ -228,7 +263,8 @@ export default function DriverHome() {
                 })),
                 totalStudents: activeTrip?.studentStops?.length || 0,
                 distance: routeData.distance,
-                duration: routeData.duration
+                duration: routeData.duration,
+                nextStationIndex: activeTrip?.nextStationIndex || 0,
               };
 
               setTripData(transformed);
@@ -236,8 +272,9 @@ export default function DriverHome() {
               if (initializeTracking && activeTrip) {
                 initializeTracking(activeTrip);
               }
-              setLoading(false);
-              return; // Dùng cache, không gọi API
+              setLoading(false); // ← Show UI instantly!
+              usedCache = true;
+              // ⚠️ Don't return - continue to fetch fresh data below
             } else if (version !== CACHE_VERSION) {
               console.log('[DriverHome] Cache version mismatch, clearing...');
               localStorage.removeItem(routeCacheKey);
@@ -248,89 +285,99 @@ export default function DriverHome() {
         }
 
         // 2. Kiểm tra cache cũ (driver_trip) - CẦN version check
-        const tripCache = localStorage.getItem(tripCacheKey);
-        if (tripCache) {
-          try {
-            const { data, timestamp, version } = JSON.parse(tripCache);
-            // Chỉ dùng cache nếu version khớp
-            if (Date.now() - timestamp < cacheExpiry && version === CACHE_VERSION) {
-              console.log('[DriverHome] Using trip cache v' + version);
-              setTripData(data.tripData);
-              setApiStations(data.apiStations || []);
-              if (initializeTracking && data.activeTrip) {
-                initializeTracking(data.activeTrip);
+        if (!usedCache) {
+          const tripCache = localStorage.getItem(tripCacheKey);
+          if (tripCache) {
+            try {
+              const { data, timestamp, version } = JSON.parse(tripCache);
+              // Chỉ dùng cache nếu version khớp
+              if (Date.now() - timestamp < cacheExpiry && version === CACHE_VERSION) {
+                console.log('[DriverHome] ✅ Using trip cache (will refresh in background)');
+                setTripData(data.tripData);
+                setApiStations(data.apiStations || []);
+                if (initializeTracking && data.activeTrip) {
+                  initializeTracking(data.activeTrip);
+                }
+                setLoading(false); // ← Show UI instantly!
+                usedCache = true;
+                // ⚠️ Don't return - continue to fetch fresh data
+              } else {
+                console.log('[DriverHome] Trip cache outdated, clearing...');
+                localStorage.removeItem(tripCacheKey);
               }
-              setLoading(false);
-              return;
-            } else {
-              // Cache cũ hoặc version không khớp → xóa
-              console.log('[DriverHome] Trip cache outdated/version mismatch, clearing...');
+            } catch (e) {
+              console.warn('[DriverHome] Trip cache parse failed');
               localStorage.removeItem(tripCacheKey);
             }
-          } catch (e) {
-            console.warn('[DriverHome] Trip cache parse failed');
-            localStorage.removeItem(tripCacheKey);
           }
         }
 
-        // 1. Lấy danh sách trips hôm nay
+        // 3. ✅ ALWAYS fetch fresh data (stale-while-revalidate)
+        console.log('[DriverHome] 🔄 Fetching fresh data from API...');
+
+        // 3.1. Lấy danh sách trips hôm nay
         const schedule = await getMySchedule();
         console.log('[DriverHome] Schedule loaded:', schedule?.length, 'trips');
 
         if (!schedule || schedule.length === 0) {
-          setError('Không có lịch trình hôm nay.');
-          setLoading(false);
+          if (!usedCache) {
+            setError('Không có lịch trình hôm nay.');
+            setLoading(false);
+          }
           return;
         }
 
-        // 2. Tìm chuyến đang chạy hoặc sắp tới
+        // 3.2. Tìm chuyến đang chạy, hoàn thành, hoặc sắp tới
         const now = new Date();
         const activeTrip = schedule.find(trip =>
           trip.status === 'IN_PROGRESS' ||
+          trip.status === 'COMPLETED' ||  // ← GET COMPLETED TRIPS TOO!
           (trip.status === 'NOT_STARTED' && new Date(trip.tripDate) <= now)
         ) || schedule[0];
 
         if (activeTrip?._id) {
-          // 3. Gọi getTrip để lấy full details (routeId.shape, orderedStops, studentStops)
+          // 3.3. Gọi getTrip để lấy full details (routeId.shape, orderedStops, studentStops)
           console.log('[DriverHome] Fetching trip details for:', activeTrip._id);
           const tripDetail = await getTrip(activeTrip._id);
 
           if (tripDetail) {
-            // 4. Transform sang UI format
+            // 3.4. Transform sang UI format
             const transformed = transformTripToUIFormat(tripDetail);
-            setTripData(transformed);
+            setTripData(transformed); // ← Update with fresh data
+            console.log('[DriverHome] ✅ Fresh data loaded, status:', transformed.status);
 
-            // 5. Set stations từ API
+            // 3.5. Set stations từ API
             const stations = transformed?.stations || [];
             if (stations.length > 0) {
               setApiStations(stations);
-              console.log('[DriverHome] API stations loaded:', stations.length);
             }
 
-            // 6. Lưu vào cache với version
+            // 3.6. Lưu vào cache với version
             localStorage.setItem(tripCacheKey, JSON.stringify({
               data: { tripData: transformed, apiStations: stations, activeTrip },
               timestamp: Date.now(),
               version: CACHE_VERSION
             }));
-            console.log('[DriverHome] Trip data cached with version', CACHE_VERSION);
+            console.log('[DriverHome] Trip data cached');
           }
 
           // Vẫn gọi initializeTracking nếu context cần
-          if (initializeTracking) {
+          if (initializeTracking && !usedCache) {
             initializeTracking(activeTrip);
           }
         }
       } catch (err) {
         console.error('[DriverHome] Lỗi tải dữ liệu:', err);
-        setError('Không thể tải lịch trình. Đang dùng dữ liệu mẫu.');
+        if (!tripData) { // Only show error if no cached data
+          setError('Không thể tải lịch trình.');
+        }
       } finally {
         setLoading(false);
       }
     };
 
     initSchedule();
-  }, []);
+  }, []); // ← Run once on mount
 
   // === Socket.IO: Lắng nghe sự kiện real-time ===
   // Lưu ý: joinTripRoom đã được gọi trong RouteTrackingContext
@@ -413,9 +460,9 @@ export default function DriverHome() {
     onTripCompleted((data) => {
       console.log('[Socket] trip:completed:', data);
       stopTracking();
-      setTripCompleted(true);
+      // ✅ REMOVED setTripCompleted - derive from backend status instead
       setSocketAlert({ type: 'success', message: 'Đã hoàn thành chuyến đi!' });
-      // Refresh trip data để cập nhật status COMPLETED và ghi nhận trạm cuối
+      // Refresh trip data để cập nhật status COMPLETED từ backend
       refreshTripData();
     });
 
@@ -499,7 +546,10 @@ export default function DriverHome() {
                   <div>
                     <div className="font-bold text-sm">TRẠM HIỆN TẠI</div>
                     <div className="text-xs opacity-90">
-                      {effectiveCurrentStation ? effectiveCurrentStation.name : 'Chưa xuất phát'}
+                      {tripCompleted
+                        ? `${effectiveStations.length}/${effectiveStations.length}`
+                        : (effectiveCurrentStation ? effectiveCurrentStation.name : 'Chưa xuất phát')
+                      }
                     </div>
                   </div>
                 </div>
@@ -600,7 +650,10 @@ export default function DriverHome() {
               <Bus className="w-8 h-8 text-purple-600 mx-auto mb-2" />
               <div className="text-sm font-medium">Trạm hiện tại</div>
               <div className="text-2xl font-bold text-purple-700">
-                {effectiveCurrentStationIdx + 1}/{effectiveStations.length}
+                {tripCompleted
+                  ? `${effectiveStations.length}/${effectiveStations.length}`
+                  : `${effectiveCurrentStationIdx + 1}/${effectiveStations.length}`
+                }
               </div>
             </div>
           </div>
@@ -616,6 +669,7 @@ export default function DriverHome() {
               tripId={tripData?.id}
               isTracking={isTracking}
               currentStationIndex={effectiveCurrentStationIdx}
+              tripCompleted={tripCompleted}
             />
           </div>
         </div>

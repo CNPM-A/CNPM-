@@ -125,6 +125,7 @@ export default function RouteMapWithBackend({
     tripId = null,
     isTracking = false,
     currentStationIndex = -1,
+    tripCompleted = false, // ← NEW: Show all stations as completed
 }) {
     const [polylineCoords, setPolylineCoords] = useState([]);
     const mountedRef = useRef(false);
@@ -156,11 +157,17 @@ export default function RouteMapWithBackend({
         }
     }, [routeShape, stops]);
 
-    const stopIcon = (index, isCurrent) =>
-        L.divIcon({
+    const stopIcon = (index, isCurrent) => {
+        // When trip completed, all markers should be green
+        const isCompleted = tripCompleted || index < currentStationIndex;
+        const bgColor = tripCompleted
+            ? "#10b981"  // All green when completed
+            : (isCurrent ? "#8b5cf6" : isCompleted ? "#10b981" : "#6b7280");
+
+        return L.divIcon({
             html: `
         <div style="
-          background: ${isCurrent ? "#8b5cf6" : "#10b981"};
+          background: ${bgColor};
           color: white;
           width: 48px; height: 48px;
           border-radius: 50%;
@@ -182,6 +189,7 @@ export default function RouteMapWithBackend({
             iconSize: [48, 48],
             iconAnchor: [24, 48],
         });
+    };
 
     return (
         <div className="h-96 w-full rounded-xl overflow-hidden shadow-2xl border-4 border-indigo-100">
@@ -207,13 +215,18 @@ export default function RouteMapWithBackend({
                     <Marker
                         key={stop.id}
                         position={stop.position}
-                        icon={stopIcon(idx, idx === currentStationIndex)}
+                        icon={stopIcon(idx, !tripCompleted && idx === currentStationIndex)}
                     >
                         <Popup>
                             <div className="text-center">
                                 <div className="font-bold text-xl text-indigo-700">{stop.name}</div>
                                 <div className="text-sm text-gray-600">Dự kiến: {stop.time}</div>
-                                {idx === currentStationIndex && (
+                                {tripCompleted && (
+                                    <div className="mt-3 px-4 py-2 bg-green-600 text-white rounded-full text-lg font-bold">
+                                        ✅ HOÀN THÀNH
+                                    </div>
+                                )}
+                                {!tripCompleted && idx === currentStationIndex && (
                                     <div className="mt-3 px-4 py-2 bg-green-600 text-white rounded-full text-lg font-bold animate-pulse">
                                         ĐANG CHECK-IN
                                     </div>
