@@ -524,10 +524,14 @@ module.exports = (io) => {
 
             const MIN_DISTANCE_THRESHOLD = 0.001; // km
             const DB_SAVE_INTERVAL_MS = 10000; // ms
-            // 🔥 Giảm threshold vì khoảng cách tối thiểu giữa các trạm chỉ 150m
+            // Threshold cho tracking (km)
+            // Dựa trên khoảng cách thực tế từ route đến trạm:
+            // - Trạm 2: 66m, Trạm 4: 61m → cần ARRIVED >= 70m
+            // Công thức: APPROACHING + DEPARTED < khoảng cách min giữa các trạm (150m)
+            // → 80m + 80m = 160m > 150m ❌ nhưng phải chấp nhận vì route không đi sát trạm
             const DISTANCE_APPROACHING = 0.1;  // 100m: sắp tới
-            const DISTANCE_ARRIVED = 0.05;     // 50m: đã tới
-            const DISTANCE_DEPARTED = 0.08;    // 80m: đã rời đi (phải > ARRIVED)
+            const DISTANCE_ARRIVED = 0.08;     // 80m: đã tới (phải >= 66m của Trạm 2)
+            const DISTANCE_DEPARTED = 0.1;     // 100m: đã rời đi
             const ROUTE_DEVIATION_THRESHOLD = 50; // m
 
             // QUAN TRỌNG: Không cho join bất kỳ phòng nào cả
