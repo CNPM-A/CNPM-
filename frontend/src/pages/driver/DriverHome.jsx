@@ -29,6 +29,8 @@ import {
   onBusDeparted,
   onBusLocationChanged,
   onAlertNew,
+  onTripError,
+  onTripCompleted,
   emitStartTrip,
   emitEndTrip,
 } from '../../services/socketService';
@@ -388,6 +390,25 @@ export default function DriverHome() {
       }
     });
 
+    // Lắng nghe lỗi trip (VD: cố kết thúc trip khi chưa tới trạm cuối)
+    onTripError((errorMessage) => {
+      console.log('[Socket] trip:error:', errorMessage);
+      setSocketAlert({
+        type: 'error',
+        message: errorMessage || 'Lỗi xử lý chuyến đi'
+      });
+    });
+
+    // Lắng nghe khi trip hoàn thành thành công (backend confirm)
+    onTripCompleted((data) => {
+      console.log('[Socket] trip:completed:', data);
+      stopTracking();
+      setTripCompleted(true);
+      setSocketAlert({ type: 'success', message: 'Đã hoàn thành chuyến đi!' });
+      // Refresh trip data để cập nhật status COMPLETED và ghi nhận trạm cuối
+      refreshTripData();
+    });
+
     socketListenersSetRef.current = true;
 
     return () => {
@@ -509,14 +530,17 @@ export default function DriverHome() {
                 <button
                   onClick={() => {
                     if (tripData?.id) {
+                      // Chỉ emit event, đợi backend confirm qua trip:completed
+                      // Nếu backend từ chối (chưa tới trạm cuối), sẽ emit trip:error
                       emitEndTrip(tripData.id);
-                      stopTracking();
-                      setTripCompleted(true);
-                      setSocketAlert({ type: 'success', message: 'Đã hoàn thành chuyến đi!' });
+                      console.log('[DriverHome] Đã gửi yêu cầu kết thúc chuyến đi');
                     }
                   }}
-                  disabled={!tripData?.id}
-                  className="flex items-center gap-3 px-6 py-3 rounded-xl font-bold text-lg shadow-2xl transition-all transform hover:scale-105 bg-gradient-to-r from-blue-500 to-indigo-600"
+                  disabled={
+                    !tripData?.id ||
+                    (isCheckingIn && totalAtStation > 0)  // Chỉ disable nếu đang check-in VÀ có học sinh
+                  }
+                  className="flex items-center gap-3 px-6 py-3 rounded-xl font-bold text-lg shadow-2xl transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-blue-500 to-indigo-600"
                 >
                   <CheckCircle className="w-8 h-8" />
                   HOÀN THÀNH
@@ -714,11 +738,13 @@ export default function DriverHome() {
             {effectiveStations.map((s, i) => (
               <div
                 key={s.id}
-                className={`p-5 rounded-2xl text-center font-bold transition-all shadow-md ${i < effectiveCurrentStationIdx
-                  ? 'bg-gradient-to-br from-green-400 to-emerald-500 text-white'
-                  : i === effectiveCurrentStationIdx
-                    ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white scale-110 shadow-2xl'
-                    : 'bg-gray-100 text-gray-600'
+                className={`p-5 rounded-2xl text-center font-bold transition-all shadow-md ${tripCompleted
+                    ? 'bg-gradient-to-br from-green-400 to-emerald-500 text-white' // Tất cả trạm màu xanh khi hoàn thành
+                    : i < effectiveCurrentStationIdx
+                      ? 'bg-gradient-to-br from-green-400 to-emerald-500 text-white'
+                      : i === effectiveCurrentStationIdx
+                        ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white scale-110 shadow-2xl'
+                        : 'bg-gray-100 text-gray-600'
                   }`}
               >
                 <div className="text-2xl mb-1">{i + 1}</div>

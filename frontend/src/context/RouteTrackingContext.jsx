@@ -19,6 +19,9 @@ import {
   joinTripRoom,
   leaveTripRoom,
   startPollingTrip,
+  onBusArrived,
+  onBusDeparted,
+  offEvent,
 } from '../services/socketService';
 import { getCurrentUser } from '../services/authService';
 import {
@@ -112,11 +115,12 @@ export const RouteTrackingProvider = ({ children }) => {
 
     setIsTracking(true);
     setCurrentStationIndex(0);
-    setStationTimer(CHECKIN_SECONDS);
-    setIsStationActive(true);
+    // KHÔNG tự động bật check-in khi bắt đầu tracking
+    setStationTimer(0);
+    setIsStationActive(false);
     setLastStoppedState(null);
     await syncDataFromBackend();
-    console.log('[RouteTrackingContext] Tracking started');
+    console.log('[RouteTrackingContext] Tracking started - Check-in sẽ bật khi xe dừng tại trạm');
   }, [syncDataFromBackend]);
 
   const stopTracking = useCallback(() => {
@@ -143,6 +147,28 @@ export const RouteTrackingProvider = ({ children }) => {
     setCurrentTripId(null);
     console.log('[RouteTrackingContext] Tracking stopped');
   }, [currentStationIndex]);
+
+  // === Hàm kích hoạt check-in khi xe dừng tại trạm ===
+  const activateCheckIn = useCallback((stationData) => {
+    console.log('[RouteTrackingContext] Kích hoạt check-in tại trạm:', stationData);
+    setIsStationActive(true);
+    setStationTimer(CHECKIN_SECONDS);
+    // Cập nhật currentStationIndex nếu backend gửi kèm
+    if (stationData?.nextStationIndex !== undefined) {
+      setCurrentStationIndex(stationData.nextStationIndex);
+    }
+  }, []);
+
+  // === Hàm tắt check-in khi xe rời trạm ===
+  const deactivateCheckIn = useCallback(() => {
+    console.log('[RouteTrackingContext] Tắt check-in - xe đang di chuyển');
+    setIsStationActive(false);
+    setStationTimer(0);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
 
   // === Timer logic ===
   useEffect(() => {
@@ -205,6 +231,35 @@ export const RouteTrackingProvider = ({ children }) => {
     }
   }, [currentTripId]); // Loại bỏ 'user' để tránh re-run không cần thiết
 
+  // === Lắng nghe sự kiện xe đến/rời trạm để điều khiển check-in ===
+  useEffect(() => {
+    if (!isTracking) return;
+
+    const socket = connectSocket();
+    if (!socket) return;
+
+    // Khi xe đến trạm → Bật check-in
+    const handleBusArrived = (data) => {
+      console.log('[RouteTrackingContext] bus:arrived_at_station:', data);
+      activateCheckIn(data);
+    };
+
+    // Khi xe rời trạm → Tắt check-in
+    const handleBusDeparted = (data) => {
+      console.log('[RouteTrackingContext] bus:departed_from_station:', data);
+      deactivateCheckIn();
+    };
+
+    onBusArrived(handleBusArrived);
+    onBusDeparted(handleBusDeparted);
+
+    return () => {
+      offEvent('bus:arrived_at_station');
+      offEvent('bus:departed_from_station');
+      console.log('[RouteTrackingContext] Đã cleanup bus event listeners');
+    };
+  }, [isTracking, activateCheckIn, deactivateCheckIn]);
+
   // === Cleanup on unmount ===
   useEffect(() => {
     return () => {
@@ -236,6 +291,8 @@ export const RouteTrackingProvider = ({ children }) => {
         startTracking,
         stopTracking,
         syncDataFromBackend,
+        activateCheckIn,
+        deactivateCheckIn,
       }}
     >
       {children}

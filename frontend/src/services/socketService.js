@@ -358,6 +358,16 @@ export const onChatMessage = (callback) => {
   }
 };
 
+/**
+ * Đăng ký listener cho lỗi trip (VD: cố kết thúc trip khi chưa tới trạm cuối)
+ * @param {Function} callback - Nhận error message string
+ */
+export const onTripError = (callback) => {
+  if (socket) {
+    socket.on('trip:error', callback);
+  }
+};
+
 // ===========================================
 // EMIT EVENTS - Send to server
 // ===========================================
@@ -496,6 +506,7 @@ export default {
   onStudentsMarkedAbsent,
   onAlertNew,
   onChatMessage,
+  onTripError,
   // Emitters
   sendChatMessage,
   sendDriverAlert,
