@@ -12,9 +12,9 @@
   import DirectionsBusIcon from '@mui/icons-material/DirectionsBus'
   import SchoolIcon from '@mui/icons-material/School'
   import SecurityIcon from '@mui/icons-material/Security'
-  import api from '../api/client'
+  import api from '../../api/apiClient'
 
-  import logoImg from '../assets/logo.png';
+  import logoImg from '../../assets/logo.png';
 
   export default function Login_Admin() {
     const navigate = useNavigate()
