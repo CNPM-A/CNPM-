@@ -6,13 +6,21 @@ import { RouteTrackingProvider } from "../context/RouteTrackingContext";
 
 // --- Lazy loaded pages ---
 
+// Home page
+const TrangChu = lazy(() => import("../pages/shared/trang_chu"));
+
+// Login pages
+const Login = lazy(() => import("../pages/shared/login"));
+const Login_Parents = lazy(() => import("../pages/parent/Login_Parents"));
+const Login_Admin = lazy(() => import("../pages/shared/Login_Admin"));
+const Login_Driver = lazy(() => import("../pages/shared/Login_Driver"));
+
 // Parent pages
 const ParentDashboard = lazy(() => import("../pages/parent/ParentDashboard"));
 const ParentTracking = lazy(() => import("../pages/parent/ParentTracking"));
 const ParentNotifications = lazy(() => import("../pages/parent/ParentNotifications"));
 const ParentProfile = lazy(() => import("../pages/parent/ParentProfile"));
 const ParentSettings = lazy(() => import("../pages/parent/ParentSettings"));
-const Login_Parents = lazy(() => import("../pages/parent/Login_Parents"));
 
 // Driver pages
 const DriverHome = lazy(() => import("../pages/driver/DriverHome"));
@@ -20,8 +28,23 @@ const DriverDailySchedule = lazy(() => import("../pages/driver/DriverDailySchedu
 const DriverContacts = lazy(() => import("../pages/driver/DriverContacts"));
 const DriverOperations = lazy(() => import("../pages/driver/DriverOperations"));
 
+// Admin pages
+const AdminLayout = lazy(() => import("../components/layout/Admin_Layouts"));
+const AdminDashboard = lazy(() => import("../pages/admin/Dashboard"));
+const AdminStudents = lazy(() => import("../pages/admin/Students"));
+const AdminDriver = lazy(() => import("../pages/admin/Driver"));
+const AdminBus = lazy(() => import("../pages/admin/Bus"));
+const AdminStations = lazy(() => import("../pages/admin/Stations"));
+const AdminRoutes = lazy(() => import("../pages/admin/Routes"));
+const AdminSchedules = lazy(() => import("../pages/admin/Schedules"));
+const AdminScheduleDetail = lazy(() => import("../pages/admin/ScheduleDetail"));
+const AdminTrips = lazy(() => import("../pages/admin/Trips"));
+const AdminTripDetail = lazy(() => import("../pages/admin/TripDetail"));
+const AdminAlerts = lazy(() => import("../pages/admin/Alerts"));
+const AdminMessages = lazy(() => import("../pages/admin/Messages"));
+const AdminTracking = lazy(() => import("../pages/admin/Tracking"));
+
 // Shared pages
-const Login = lazy(() => import("../pages/shared/login"));
 const NotFound = lazy(() => import("../pages/shared/NotFound"));
 
 // Loading component
@@ -35,9 +58,14 @@ export default function AppRoutes() {
   return (
     <Suspense fallback={<Loader />}>
       <Routes>
-        {/* ===== PUBLIC ROUTES ===== */}
+        {/* ===== HOME PAGE ===== */}
+        <Route path="/" element={<TrangChu />} />
+
+        {/* ===== PUBLIC LOGIN ROUTES ===== */}
         <Route path="/login" element={<Login />} />
+        <Route path="/admin/login" element={<Login_Admin />} />
         <Route path="/parent/login" element={<Login_Parents />} />
+        <Route path="/driver/login" element={<Login_Driver />} />
 
         {/* ===== PARENT ROUTES ===== */}
         <Route path="/parent" element={<ParentLayout />}>
@@ -56,8 +84,23 @@ export default function AppRoutes() {
         <Route path="/driver/contacts" element={<DriverContacts />} />
         <Route path="/driver/operations" element={<DriverOperations />} />
 
-        {/* ===== ROOT REDIRECT ===== */}
-        <Route path="/" element={<Navigate to="/parent/login" replace />} />
+        {/* ===== ADMIN ROUTES ===== */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="students" element={<AdminStudents />} />
+          <Route path="drivers" element={<AdminDriver />} />
+          <Route path="buses" element={<AdminBus />} />
+          <Route path="stations" element={<AdminStations />} />
+          <Route path="routes" element={<AdminRoutes />} />
+          <Route path="schedules" element={<AdminSchedules />} />
+          <Route path="schedules/:id" element={<AdminScheduleDetail />} />
+          <Route path="trips" element={<AdminTrips />} />
+          <Route path="trips/:id" element={<AdminTripDetail />} />
+          <Route path="alerts" element={<AdminAlerts />} />
+          <Route path="messages" element={<AdminMessages />} />
+          <Route path="tracking" element={<AdminTracking />} />
+        </Route>
 
         {/* ===== 404 FALLBACK ===== */}
         <Route path="*" element={<NotFound />} />
