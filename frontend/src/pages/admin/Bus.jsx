@@ -5,10 +5,10 @@ import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import DirectionsBusIcon from '@mui/icons-material/DirectionsBus'
-import { AdminService } from '../api/services'
-import BusFormDialog from '../components/BusFormDialog'
-import ConfirmDialog from '../components/ConfirmDialog'
-import { useNotify } from '../hooks/useNotify'
+import { AdminService } from '../../services/admin/AdminService'
+import BusFormDialog from '../../components/admin/BusFormDialog'
+import ConfirmDialog from '../../components/admin/ConfirmDialog'
+import { useNotify } from './hooks/useNotify'
 
 export default function Buses() {
   const [rows, setRows] = useState([])

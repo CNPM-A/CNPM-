@@ -3,8 +3,8 @@ import { Box, Paper, Typography, Stack, Button, Chip, Avatar, List, ListItem, Li
 import RefreshIcon from '@mui/icons-material/Refresh';
 import MessageIcon from '@mui/icons-material/Message';
 import PersonIcon from '@mui/icons-material/Person';
-import { AdminService } from "../api/services";
-import { useNotify } from '../hooks/useNotify';
+import { AdminService } from "../../services/admin/AdminService";
+import { useNotify } from './hooks/useNotify';
 
 export default function Messages() {
   const [rows, setRows] = useState([]);

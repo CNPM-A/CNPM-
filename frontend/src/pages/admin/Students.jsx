@@ -14,11 +14,11 @@ import SearchIcon from '@mui/icons-material/Search'
 import FaceIcon from '@mui/icons-material/Face'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import WarningIcon from '@mui/icons-material/Warning'
-import { AdminService } from '../api/services'
-import StudentFormDialog from '../components/StudentFormDialog'
-import FaceUploadDialog from '../components/FaceUploadDialog'
-import ConfirmDialog from '../components/ConfirmDialog'
-import { useNotify } from '../hooks/useNotify'
+import { AdminService } from '../../services/admin/AdminService'
+import StudentFormDialog from '../../components/admin/StudentFormDialog'
+import FaceUploadDialog from '../../components/admin/FaceUploadDialog'
+import ConfirmDialog from '../../components/admin/ConfirmDialog'
+import { useNotify } from './hooks/useNotify'
 
 export default function Students() {
   const [rows, setRows] = useState([])

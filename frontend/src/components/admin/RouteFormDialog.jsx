@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react"
 import { Dialog, DialogContent, DialogActions, Button, TextField, Stack, Box, Typography, Alert, Chip, Autocomplete, CircularProgress } from "@mui/material"
 import RouteIcon from '@mui/icons-material/AltRoute'
-import { AdminService } from '../api/services'
+import { AdminService } from '../../services/admin/AdminService'
 
 export default function RouteFormDialog({ open, onClose, initialValue, onSubmit }) {
   const [form, setForm] = useState({ name: '', stationIds: [] })

@@ -11,7 +11,7 @@ import WarningIcon from "@mui/icons-material/Warning"
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive"
 import DirectionsRunIcon from "@mui/icons-material/DirectionsRun"
 import { useNavigate } from "react-router-dom"
-import { AdminService } from "../api/services"
+import { AdminService } from "../../services/admin/AdminService"
 
 export default function Dashboard() {
   const navigate = useNavigate()

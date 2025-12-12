@@ -2,6 +2,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
+import { SnackbarProvider } from 'notistack';
 import App from './App';
 import './index.css';
 import 'leaflet/dist/leaflet.css';
@@ -19,9 +20,11 @@ if (!rootElement) {
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      <SnackbarProvider maxSnack={3} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </SnackbarProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

@@ -16,8 +16,8 @@ import CancelIcon from '@mui/icons-material/Cancel'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import { useNavigate } from 'react-router-dom'
-import { AdminService } from '../api/services'
-import { useNotify } from '../hooks/useNotify'
+import { AdminService } from '../../services/admin/AdminService'
+import { useNotify } from './hooks/useNotify'
 
 export default function Trips() {
   const navigate = useNavigate()

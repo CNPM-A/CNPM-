@@ -1,9 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../../services/authService';
-import { BusIcon } from '../../components/parent/Icons';
 import logo from '../../assets/logo.jpg';
-
 
 export default function Login() {
   const navigate = useNavigate();
@@ -11,11 +9,7 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (authService.isAuthenticated()) {
-      navigate('/parent/dashboard');
-    }
-  }, [navigate]);
+  // Removed auto-redirect - always show login form when user selects Parent role
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

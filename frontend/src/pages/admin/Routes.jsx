@@ -14,10 +14,10 @@ import PlaceIcon from '@mui/icons-material/Place'
 import AccessTimeIcon from '@mui/icons-material/AccessTime'
 import StraightenIcon from '@mui/icons-material/Straighten'
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
-import { AdminService } from '../api/services'
-import RouteFormDialog from '../components/RouteFormDialog'
-import ConfirmDialog from '../components/ConfirmDialog'
-import { useNotify } from '../hooks/useNotify'
+import { AdminService } from '../../services/admin/AdminService'
+import RouteFormDialog from '../../components/admin/RouteFormDialog'
+import ConfirmDialog from '../../components/admin/ConfirmDialog'
+import { useNotify } from './hooks/useNotify'
 
 export default function RoutesPage() {
   const [rows, setRows] = useState([])

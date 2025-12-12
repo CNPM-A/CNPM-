@@ -20,8 +20,8 @@ import MyLocationIcon from '@mui/icons-material/MyLocation'
 import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { AdminService } from '../api/services'
-import { useNotify } from '../hooks/useNotify'
+import { AdminService } from '../../services/admin/AdminService'
+import { useNotify } from './hooks/useNotify'
 
 // Fix icon Leaflet mặc định
 delete L.Icon.Default.prototype._getIconUrl

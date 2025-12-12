@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react"
 import { Dialog, DialogContent, DialogActions, Button, TextField, MenuItem, Stack, Box, Typography, Avatar, CircularProgress, Alert } from "@mui/material"
-import { AdminService } from '../api/services'
-import avatarTrai from '../assets/avatar_trai.png'
+import { AdminService } from '../../services/admin/AdminService'
+import avatarTrai from '../../assets/avatar_trai.png'
 
 export default function StudentFormDialog({ open, onClose, initialValue, onSubmit }) {
   const [form, setForm] = useState({ name: '', grade: '', parentId: '', fullAddress: '', latitude: '', longitude: '' })

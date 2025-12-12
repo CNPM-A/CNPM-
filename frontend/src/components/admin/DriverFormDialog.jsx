@@ -4,7 +4,7 @@ import PersonIcon from '@mui/icons-material/Person'
 import PhoneIcon from '@mui/icons-material/Phone'
 import EmailIcon from '@mui/icons-material/Email'
 import LockIcon from '@mui/icons-material/Lock'
-import avatarDriver from '../assets/driver.png'
+import avatarDriver from '../../assets/driver.png'
 
 export default function DriverFormDialog({ open, onClose, initialValue, onSubmit }) {
   const [form, setForm] = useState({ name: '', phoneNumber: '', email: '', password: '' })

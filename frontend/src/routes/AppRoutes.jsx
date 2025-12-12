@@ -23,10 +23,11 @@ const ParentProfile = lazy(() => import("../pages/parent/ParentProfile"));
 const ParentSettings = lazy(() => import("../pages/parent/ParentSettings"));
 
 // Driver pages
-const DriverHome = lazy(() => import("../pages/driver/DriverHome"));
-const DriverDailySchedule = lazy(() => import("../pages/driver/DriverDailySchedule"));
-const DriverContacts = lazy(() => import("../pages/driver/DriverContacts"));
-const DriverOperations = lazy(() => import("../pages/driver/DriverOperations"));
+const DriverHome = lazy(() => import("../pages/driver/components/driver/DriverHome"));
+const DriverDailySchedule = lazy(() => import("../pages/driver/components/driver/DriverDailySchedule"));
+const DriverContacts = lazy(() => import("../pages/driver/components/driver/DriverContacts"));
+const DriverOperations = lazy(() => import("../pages/driver/components/driver/DriverOperations"));
+const DriverLayout = lazy(() => import("../layouts/DriverLayout"));
 
 // Admin pages
 const AdminLayout = lazy(() => import("../components/layout/Admin_Layouts"));
@@ -78,11 +79,14 @@ export default function AppRoutes() {
         </Route>
 
         {/* ===== DRIVER ROUTES ===== */}
-        <Route path="/driver" element={<RouteTrackingProvider><DriverHome /></RouteTrackingProvider>} />
-        <Route path="/driver/home" element={<RouteTrackingProvider><DriverHome /></RouteTrackingProvider>} />
-        <Route path="/driver/schedule" element={<DriverDailySchedule />} />
-        <Route path="/driver/contacts" element={<DriverContacts />} />
-        <Route path="/driver/operations" element={<DriverOperations />} />
+        {/* ===== DRIVER ROUTES ===== */}
+        <Route path="/driver" element={<RouteTrackingProvider><DriverLayout /></RouteTrackingProvider>}>
+          <Route index element={<Navigate to="home" replace />} />
+          <Route path="home" element={<DriverHome />} />
+          <Route path="schedule" element={<DriverDailySchedule />} />
+          <Route path="contacts" element={<DriverContacts />} />
+          <Route path="operations" element={<DriverOperations />} />
+        </Route>
 
         {/* ===== ADMIN ROUTES ===== */}
         <Route path="/admin" element={<AdminLayout />}>

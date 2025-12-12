@@ -5,7 +5,7 @@ import {
   Select, Chip
 } from "@mui/material"
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
-import { AdminService } from '../api/services'
+import { AdminService } from '../../services/admin/AdminService'
 
 export default function ScheduleFormDialog({ open, onClose, initialValue, onSubmit }) {
   const [form, setForm] = useState({

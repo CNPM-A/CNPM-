@@ -5,10 +5,10 @@ import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import PersonIcon from '@mui/icons-material/Person'
-import { AdminService } from '../api/services'
-import DriverFormDialog from '../components/DriverFormDialog'
-import ConfirmDialog from '../components/ConfirmDialog'
-import { useNotify } from '../hooks/useNotify'
+import { AdminService } from '../../services/admin/AdminService'
+import DriverFormDialog from '../../components/admin/DriverFormDialog'
+import ConfirmDialog from '../../components/admin/ConfirmDialog'
+import { useNotify } from './hooks/useNotify'
 
 export default function Drivers() {
   const [rows, setRows] = useState([])

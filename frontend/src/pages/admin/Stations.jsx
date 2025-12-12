@@ -12,10 +12,10 @@ import PlaceIcon from '@mui/icons-material/Place'
 import SearchIcon from '@mui/icons-material/Search'
 import LocationOnIcon from '@mui/icons-material/LocationOn'
 import MapIcon from '@mui/icons-material/Map'
-import { AdminService } from '../api/services'
-import StationFormDialog from '../components/StationFormDialog'
-import ConfirmDialog from '../components/ConfirmDialog'
-import { useNotify } from '../hooks/useNotify'
+import { AdminService } from '../../services/admin/AdminService'
+import StationFormDialog from '../../components/admin/StationFormDialog'
+import ConfirmDialog from '../../components/admin/ConfirmDialog'
+import { useNotify } from './hooks/useNotify'
 
 export default function Stations() {
   const [rows, setRows] = useState([])

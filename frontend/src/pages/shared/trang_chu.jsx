@@ -13,15 +13,15 @@ import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import { useNavigate } from 'react-router-dom';
 
 // Import hình ảnh
-import busImg from '../assets/bus.png';
-import logoImg from '../assets/logo.png';
+import busImg from '../../assets/bus.png';
+import logoImg from '../../assets/logo.png';
 
 export default function TrangChu() {
   const navigate = useNavigate();
 
   const roles = [
     { name: 'Admin', icon: <AdminPanelSettingsIcon />, color: '#6366f1', path: '/admin/login' },
-    { name: 'Parents', icon: <PersonOutlineIcon />, color: '#22c55e', path: '/parents/login' },
+    { name: 'Parents', icon: <PersonOutlineIcon />, color: '#22c55e', path: '/parent/login' },
     { name: 'Driver', icon: <DirectionsBusIcon />, color: '#f59e0b', path: '/driver/login' }
   ];
 

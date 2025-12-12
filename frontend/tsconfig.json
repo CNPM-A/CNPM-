@@ -21,6 +21,6 @@
     "noFallthroughCasesInSwitch": true,
     "allowJs": true
   },
-  "include": ["src"],
+  "include": ["src", "src/pages/driver/components/driver/DriverContacts.jsx", "src/pages/driver/components/driver/DriverDailySchedule.jsx", "src/pages/driver/components/driver/DriverHome.jsx", "src/pages/driver/components/driver/DriverOperations.jsx"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

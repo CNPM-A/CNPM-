@@ -47,6 +47,19 @@ export const AdminService = {
     return response.data.data;
   },
 
+  // ==================== PARENTS ====================
+  listParents: async (params = {}) => {
+    const response = await api.get('/users', { params });
+    const users = response.data.data || [];
+    return users
+      .filter(u => u.role === 'Parent')
+      .map(u => ({
+        ...u,
+        user_id: u._id,
+        phone_number: u.phoneNumber
+      }));
+  },
+
   // ==================== DRIVERS ====================
   listDrivers: async (params = {}) => {
     const response = await api.get('/users', { params });

@@ -91,7 +91,7 @@ export const logOut = logout;
  * @returns {string|null}
  */
 export const getToken = () => {
-  return localStorage.getItem('token');
+  return localStorage.getItem('accessToken') || localStorage.getItem('token');
 };
 
 /**

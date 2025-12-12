@@ -25,9 +25,9 @@ import NavigationIcon from '@mui/icons-material/Navigation'
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, Circle } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { AdminService } from '../api/services'
-import { useSocket } from '../hooks/useSocket'
-import { useNotify } from '../hooks/useNotify'
+import { AdminService } from '../../services/admin/AdminService'
+import { useSocket } from './hooks/useSocket'
+import { useNotify } from './hooks/useNotify'
 import { useNavigate } from 'react-router-dom'
 
 // Fix Leaflet icons

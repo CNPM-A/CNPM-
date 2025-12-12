@@ -12,8 +12,8 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import CameraAltIcon from '@mui/icons-material/CameraAlt'
 import ErrorIcon from '@mui/icons-material/Error'
 import InfoIcon from '@mui/icons-material/Info'
-import { AdminService } from '../api/services'
-import { useNotify } from '../hooks/useNotify'
+import { AdminService } from '../../services/admin/AdminService'
+import { useNotify } from '../../pages/admin/hooks/useNotify'
 
 export default function FaceUploadDialog({ open, onClose, student, onSuccess }) {
   const [uploading, setUploading] = useState(false)

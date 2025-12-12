@@ -9,7 +9,7 @@ import DirectionsBusIcon from '@mui/icons-material/DirectionsBus'
 import AccessTimeIcon from '@mui/icons-material/AccessTime'
 import ErrorIcon from '@mui/icons-material/Error'
 import InfoIcon from '@mui/icons-material/Info'
-import { AdminService } from '../api/services'
+import { AdminService } from '../../services/admin/AdminService'
 
 export default function Alerts() {
   const [rows, setRows] = useState([])

@@ -19,10 +19,10 @@ import MoreVertIcon from '@mui/icons-material/MoreVert'
 import TodayIcon from '@mui/icons-material/Today'
 import GroupIcon from '@mui/icons-material/Group'
 import { useNavigate } from 'react-router-dom'
-import { AdminService } from '../api/services'
-import ScheduleFormDialog from '../components/ScheduleFormDialog'
-import ConfirmDialog from '../components/ConfirmDialog'
-import { useNotify } from '../hooks/useNotify'
+import { AdminService } from '../../services/admin/AdminService'
+import ScheduleFormDialog from '../../components/admin/ScheduleFormDialog'
+import ConfirmDialog from '../../components/admin/ConfirmDialog'
+import { useNotify } from './hooks/useNotify'
 
 export default function Schedules() {
   const navigate = useNavigate()

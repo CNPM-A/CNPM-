@@ -18,7 +18,7 @@ const api = axios.create({
 // === REQUEST INTERCEPTOR: TỰ ĐỘNG GẮN TOKEN ===
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("accessToken") || localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
