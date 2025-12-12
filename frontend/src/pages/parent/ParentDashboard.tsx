@@ -7,7 +7,7 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-
 import L from 'leaflet';
 
 import useSocket from '../../hooks/useSocket';
-import { MOCK_ROUTES } from '../../data/mockRoutes';
+// MOCK_ROUTES removed - Dashboard now uses real-time socket data only
 import { NotificationSnackbar } from '../../components/common/NotificationSnackbar';
 
 // Fix Leaflet Icons
@@ -108,10 +108,8 @@ export default function Dashboard() {
   const [stops, setStops] = useState<any[]>([]); // Station markers
   const socket = useSocket();
   
-  // Simulation mode
-  const [isSimulation, setIsSimulation] = useState(true);
-  const [currentRouteIndex, setCurrentRouteIndex] = useState(0);
-  const [routePathIndex, setRoutePathIndex] = useState(0);
+  // Real-time mode - no simulation, only socket updates
+  // Bus location is updated via socket event 'bus:location_changed'
 
 
 
@@ -172,8 +170,8 @@ export default function Dashboard() {
 
         // 4. Fetch Trips - Get trip ID then fetch details
         try {
-          // 🔧 HARDCODED TRIP ID - For testing/demo
-          const KNOWN_TRIP_ID = '69333192d3adea87130c7fc7';
+          // 🔧 HARDCODED TRIP ID - Must match simulation-driver-smart.js
+          const KNOWN_TRIP_ID = '6938d2d76c845869e2f51edb';
           
           // First get all trips to find the right trip ID
           const tripsRes = await api.get('/trips');
@@ -324,6 +322,7 @@ export default function Dashboard() {
             const convertedShape = routeShape.map((c: number[]) => [c[1], c[0]] as [number, number]);
             console.log('✅ Dashboard: Route shape loaded:', convertedShape.length, 'points');
             setRoutePath(convertedShape);
+            // Set initial bus position at start of route
             setBusLocation({ lat: convertedShape[0][0], lng: convertedShape[0][1] });
           } else {
              // Fallback: try to fetch route if we have routeId
@@ -339,7 +338,8 @@ export default function Dashboard() {
                  if (routeData?.shape?.coordinates?.length > 0) {
                    const shape = routeData.shape.coordinates.map((c: number[]) => [c[1], c[0]] as [number, number]);
                    setRoutePath(shape);
-                   setBusLocation({ lat: shape[0][0], lng: shape[0][1] });
+                    // Set initial bus position at start of route
+                    setBusLocation({ lat: shape[0][0], lng: shape[0][1] });
                    console.log('✅ Dashboard: Route loaded from /routes');
                  }
                } catch (e) {
@@ -468,8 +468,7 @@ export default function Dashboard() {
     // 1. BUS LOCATION CHANGED - Real-time tracking
     // ========================================
     const handleLocationUpdate = (data: any) => {
-      console.log("✅ bus:location_changed:", data);
-      setIsSimulation(false);
+      console.log("✅ Dashboard bus:location_changed:", data);
       const lat = data.latitude || data.lat || data.coords?.latitude;
       const lng = data.longitude || data.lng || data.coords?.longitude;
       if (lat && lng) {
@@ -651,41 +650,8 @@ export default function Dashboard() {
     };
   }, [socket, trip, user, student?._id]);
 
-  // ... (Simulation loop remains unchanged)
-
-  // Simulation Loop for Dashboard Map - Chạy chậm, mượt
-  useEffect(() => {
-    if (!isSimulation) return;
-
-    const interval = setInterval(() => {
-      setRoutePathIndex((prevIndex) => {
-        const simulationPath = MOCK_ROUTES[currentRouteIndex].path;
-        const nextIndex = prevIndex + 1;
-        
-        if (nextIndex >= simulationPath.length) {
-          // Move to next route
-          const nextRouteIdx = (currentRouteIndex + 1) % MOCK_ROUTES.length;
-          setCurrentRouteIndex(nextRouteIdx);
-          return 0;
-        }
-        
-        return nextIndex;
-      });
-    }, 500); // 500ms = chạy chậm, mượt (matched with ParentTracking)
-
-    return () => clearInterval(interval);
-  }, [isSimulation, currentRouteIndex]);
-
-  // Update bus location during simulation
-  useEffect(() => {
-    if (isSimulation && routePath.length === 0) {
-      const simulationPath = MOCK_ROUTES[currentRouteIndex].path;
-      if (routePathIndex < simulationPath.length) {
-        const point = simulationPath[routePathIndex];
-        setBusLocation({ lat: point[0], lng: point[1] });
-      }
-    }
-  }, [routePathIndex, currentRouteIndex, isSimulation, routePath.length]);
+  // Bus location is now updated ONLY via socket event 'bus:location_changed'
+  // No simulation loop - Dashboard map shows real-time data like ParentTracking
 
   if (loading) {
       return <div className="flex items-center justify-center h-full text-slate-400">Loading dashboard...</div>;
@@ -750,16 +716,15 @@ export default function Dashboard() {
 
         {/* ETA Card - Dynamic based on trip status */}
         {(() => {
-          // Calculate ETA based on route progress
+          // Calculate ETA based on trip duration
           const totalDuration = trip?.routeId?.durationSeconds || 690; // fallback 11.5 min
-          const displayPath = routePath.length > 0 ? routePath : MOCK_ROUTES[currentRouteIndex]?.path || [];
-          const progress = displayPath.length > 0 ? routePathIndex / displayPath.length : 0;
-          const remainingSeconds = Math.round(totalDuration * (1 - progress));
-          const remainingMinutes = Math.max(0, Math.ceil(remainingSeconds / 60));
           
           const tripStatus = trip?.status || 'NOT_STARTED';
-          const isRunning = tripStatus === 'IN_PROGRESS' || (!isSimulation && routePathIndex > 0);
+          const isRunning = tripStatus === 'IN_PROGRESS';
           const isCompleted = tripStatus === 'COMPLETED';
+          
+          // Estimate remaining time based on status
+          const remainingMinutes = isCompleted ? 0 : isRunning ? Math.ceil(totalDuration / 60) : Math.ceil(totalDuration / 60);
           
           // Get next station name
           const nextStationIdx = trip?.nextStationIndex || 0;
@@ -811,10 +776,10 @@ export default function Dashboard() {
           );
         })()}
 
-        {/* Speed Card - Dynamic based on simulation */}
+        {/* Speed Card - Dynamic based on trip status */}
         {(() => {
           const tripStatus = trip?.status || 'NOT_STARTED';
-          const isRunning = tripStatus === 'IN_PROGRESS' || (!isSimulation && routePathIndex > 0);
+          const isRunning = tripStatus === 'IN_PROGRESS';
           const isCompleted = tripStatus === 'COMPLETED';
           
           // Simulate speed: 30-50 km/h when running, 0 when stopped
@@ -1046,18 +1011,15 @@ export default function Dashboard() {
                     {/* Auto-pan to bus location */}
                     <RecenterMap lat={busLocation.lat} lng={busLocation.lng} />
                     
-                    {/* Route path - use real data if available, otherwise simulation */}
-                    {(() => {
-                      const displayPath = routePath.length > 0 ? routePath : MOCK_ROUTES[currentRouteIndex].path;
-                      return displayPath.length > 0 && (
-                        <Polyline 
-                          positions={displayPath.map(p => [p[0], p[1]] as [number, number])}
-                          color="#f97316"
-                          weight={4}
-                          opacity={0.7}
-                        />
-                      );
-                    })()}
+                    {/* Route path - only show when real data available */}
+                    {routePath.length > 0 && (
+                      <Polyline 
+                        positions={routePath}
+                        color="#f97316"
+                        weight={4}
+                        opacity={0.7}
+                      />
+                    )}
                     
                     {/* Stop markers */}
                     {stops.map((stop: any, index: number) => (

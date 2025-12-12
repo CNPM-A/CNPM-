@@ -1,5 +1,6 @@
-import { useNavigate } from 'react-router-dom';
-import { MenuIcon, BellIcon, UserIcon } from './Icons';
+import React from 'react';
+import { NavLink } from 'react-router-dom';
+import { BellIcon, MenuIcon } from './Icons';
 
 interface HeaderProps {
   title: string;
@@ -8,44 +9,33 @@ interface HeaderProps {
 }
 
 export default function Header({ title, onMenuClick, unreadCount = 0 }: HeaderProps) {
-  const navigate = useNavigate();
   return (
-    <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 lg:px-8 z-20 sticky top-0">
-      {/* Left: Hamburger (Mobile) & Title */}
-      <div className="flex items-center gap-4">
-        <button 
-          onClick={onMenuClick} 
-          className="p-2 -ml-2 text-slate-600 lg:hidden hover:bg-slate-100 rounded-lg transition-colors"
+    <header className="sticky top-0 z-20 bg-white shadow-sm border-b border-slate-200">
+      <div className="flex items-center justify-between px-4 py-3 md:px-6">
+        {/* Menu Button (Mobile) */}
+        <button
+          onClick={onMenuClick}
+          className="p-2 rounded-lg hover:bg-slate-100 lg:hidden"
+          aria-label="Open menu"
         >
-          <MenuIcon className="w-6 h-6" />
+          <MenuIcon className="w-6 h-6 text-slate-600" />
         </button>
-        <h1 className="text-xl font-bold text-slate-800">{title}</h1>
-      </div>
 
-      {/* Right: Actions */}
-      <div className="flex items-center gap-2 sm:gap-4">
+        {/* Page Title */}
+        <h1 className="text-lg md:text-xl font-bold text-slate-800">{title}</h1>
+
         {/* Notifications */}
-        {/* Notifications */}
-        <button 
-          onClick={() => navigate('/parent/notifications')}
-          className="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors"
+        <NavLink
+          to="/parent/notifications"
+          className="relative p-2 rounded-lg hover:bg-slate-100"
         >
-          <BellIcon className="w-6 h-6" />
+          <BellIcon className="w-6 h-6 text-slate-600" />
           {unreadCount > 0 && (
-            <span className="absolute top-2 right-2 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white animate-pulse"></span>
+            <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
           )}
-        </button>
-
-        {/* User Profile Snippet */}
-        <div className="flex items-center gap-3 pl-2 sm:border-l sm:border-slate-200">
-          <div className="hidden sm:block text-right">
-            <p className="text-sm font-medium text-slate-900">Parent User</p>
-            <p className="text-xs text-slate-500">ID: 123123</p>
-          </div>
-          <button className="h-9 w-9 rounded-full bg-brand-100 flex items-center justify-center border-2 border-white shadow-sm text-brand-700 hover:bg-brand-200 transition-colors">
-            <UserIcon className="w-5 h-5" />
-          </button>
-        </div>
+        </NavLink>
       </div>
     </header>
   );
