@@ -192,7 +192,7 @@ export default function RouteMapWithBackend({
     };
 
     return (
-        <div className="h-96 w-full rounded-xl overflow-hidden shadow-2xl border-4 border-indigo-100">
+        <div className="h-96 w-full rounded-xl overflow-hidden shadow-2xl border-4 border-indigo-100 relative z-0">
             <MapContainer
                 center={center}
                 zoom={zoom}

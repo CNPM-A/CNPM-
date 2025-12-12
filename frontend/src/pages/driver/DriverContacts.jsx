@@ -260,17 +260,9 @@ export default function DriverContacts() {
       [activeChat]: [...(prev[activeChat] || []), msg]
     }));
 
-    // ✅ Emit socket event
+    // ✅ Emit socket event - chỉ gửi cho admin
     if (activeChat === 'admin') {
-      // Send to admin (receiverId = null means admin)
       sendChatMessage(null, newMessage.trim());
-    } else {
-      // Extract student ID from activeChat (format: "parent-{studentId}")
-      const studentId = activeChat.replace('parent-', '');
-      const student = contacts.find(c => c.id === studentId);
-      if (student?.parentId) {
-        sendChatMessage(student.parentId, newMessage.trim());
-      }
     }
 
     // Save to localStorage for persistence
@@ -303,9 +295,7 @@ export default function DriverContacts() {
   }, [currentMessages, messageSearch]);
 
   const getChatTitle = () => {
-    if (activeChat === 'admin') return 'Chat với Quản Lý (Admin)';
-    const student = contacts.find(s => `parent-${s.id}` === activeChat);
-    return student ? `Chat với ${student.parentName} (PH ${student.name})` : 'Chat';
+    return 'Chat với Quản Lý (Admin)';
   };
 
   // Loading & Empty state
@@ -420,12 +410,6 @@ export default function DriverContacts() {
                         >
                           <Phone className="w-6 h-6" />
                         </a>
-                        <button
-                          onClick={() => openChat(`parent-${student.id}`)}
-                          className="p-4 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg hover:scale-110 transition"
-                        >
-                          <MessageCircle className="w-6 h-6" />
-                        </button>
                       </div>
                     </div>
                   );
@@ -471,20 +455,20 @@ export default function DriverContacts() {
                   filteredMessages.map((msg) => (
                     <div key={msg.id} className={`flex ${msg.sender === 'driver' ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-xs md:max-w-md px-5 py-3 rounded-3xl shadow-lg ${msg.sender === 'driver'
-                          ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white'
-                          : msg.sender === 'admin'
-                            ? 'bg-gradient-to-r from-teal-500 to-emerald-600 text-white'
-                            : 'bg-gray-200 text-gray-800'
+                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white'
+                        : msg.sender === 'admin'
+                          ? 'bg-gradient-to-r from-teal-500 to-emerald-600 text-white'
+                          : 'bg-gray-200 text-gray-800'
                         }`}>
                         {msg.sender === 'admin' && (
                           <p className="text-xs font-semibold text-teal-100 mb-1">Quản lý</p>
                         )}
                         <p className="text-base">{msg.text}</p>
                         <p className={`text-xs mt-2 opacity-80 ${msg.sender === 'driver'
-                            ? 'text-indigo-200'
-                            : msg.sender === 'admin'
-                              ? 'text-teal-100'
-                              : 'text-gray-500'
+                          ? 'text-indigo-200'
+                          : msg.sender === 'admin'
+                            ? 'text-teal-100'
+                            : 'text-gray-500'
                           }`}>
                           {msg.time}
                         </p>

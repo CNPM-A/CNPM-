@@ -206,7 +206,7 @@ export default function RouteMap({
     });
 
   return (
-    <div className="h-96 w-full rounded-xl overflow-hidden shadow-2xl border-4 border-indigo-100">
+    <div className="h-96 w-full rounded-xl overflow-hidden shadow-2xl border-4 border-indigo-100 relative z-0">
       <MapContainer center={center} zoom={zoom} style={{ height: "100%", width: "100%" }}>
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 

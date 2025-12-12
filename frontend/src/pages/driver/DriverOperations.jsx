@@ -447,6 +447,7 @@ export default function DriverOperations() {
   const [selectedIncident, setSelectedIncident] = useState('');
   const [incidentNote, setIncidentNote] = useState('');
   const [alertStatus, setAlertStatus] = useState(null); // For showing alert feedback
+  const [scheduleData, setScheduleData] = useState([]); // ✅ Lưu dữ liệu từ getMySchedule()
 
   // ✅ Check if driver can send alerts (must have active trip)
   const canSendAlert = Boolean(currentTripId && isTracking);
@@ -476,29 +477,25 @@ export default function DriverOperations() {
     };
   }, []);
 
-  // Tự động tải lịch trình nếu context chưa có dữ liệu
+  // ✅ Tải lịch trình từ getMySchedule() API
   useEffect(() => {
-    const loadScheduleIfNeeded = async () => {
-      if (routesToday.length > 0 || currentRoute) {
-        setLoading(false);
-        return;
-      }
-
+    const loadSchedule = async () => {
       try {
         setLoading(true);
-        // Gọi API lấy lịch trình (có fallback mock → không cần dùng biến schedule)
-        await getMySchedule();
-        // Context sẽ tự cập nhật nếu có hàm init
-        // Nếu không có → vẫn dùng mock → UI vẫn hoạt động bình thường
+        console.log('[DriverOperations] Fetching schedule from API...');
+        const data = await getMySchedule();
+        console.log('[DriverOperations] Schedule data:', data);
+        setScheduleData(Array.isArray(data) ? data : [data]);
       } catch (err) {
-        console.warn('Không thể tải lịch trình ở Operations → dùng dữ liệu mock');
+        console.warn('[DriverOperations] Không thể tải lịch trình:', err);
+        setScheduleData([]);
       } finally {
         setLoading(false);
       }
     };
 
-    loadScheduleIfNeeded();
-  }, [routesToday.length, currentRoute]);
+    loadSchedule();
+  }, []);
 
   // Helper: lưu tin nhắn + broadcast
   const pushChatMessage = (threadId, msgObj) => {
@@ -628,24 +625,31 @@ export default function DriverOperations() {
     alert('ĐÃ GỌI KHẨN CẤP!\nQuản lý và cứu hộ đang được thông báo...');
   };
 
-  // Thống kê theo tuyến
-  const statsByRoute = routesToday.map(route => {
-    const students = allStudentsForContact.filter(s =>
-      route.stations?.some(st => st.id === s.stop)
-    );
+  // ✅ Thống kê học sinh theo tuyến - trực tiếp từ scheduleData (getMySchedule API)
+  const statsByRoute = scheduleData.map(trip => {
+    const routeName = trip.routeId?.name || trip.name || 'Chưa đặt tên';
+    const tripTime = trip.tripDate
+      ? new Date(trip.tripDate).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+      : '--:--';
+
+    // Lấy danh sách học sinh từ trip (nếu có)
+    const students = trip.students || [];
     const total = students.length;
-    const onboard = students.filter(s => studentCheckIns[s.id] === 'present').length;
-    const absent = students.filter(s => studentCheckIns[s.id] === 'absent').length;
+
+    // Đếm trạng thái học sinh
+    const onboard = students.filter(s => s.status === 'PRESENT' || s.status === 'present').length;
+    const absent = students.filter(s => s.status === 'ABSENT' || s.status === 'absent').length;
     const waiting = total - onboard - absent;
 
     return {
-      id: route.id || route._id,
-      name: route.name || route.routeId?.name || 'Chưa đặt tên',
-      time: route.time || route.startTime || '--:--',
+      id: trip._id || trip.id,
+      name: routeName,
+      time: tripTime,
       total,
       onboard,
       absent,
       waiting,
+      status: trip.status || 'SCHEDULED',
     };
   });
 
@@ -785,28 +789,28 @@ export default function DriverOperations() {
         {/* Modal báo cáo sự cố */}
         {showIncidentModal && (
           <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-3xl shadow-3xl p-10 max-w-md w-full border-4 border-red-200">
-              <div className="flex justify-between items-center mb-8">
-                <h3 className="text-3xl font-bold text-red-600">Báo cáo sự cố</h3>
+            <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full border-2 border-red-200">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-red-600">Báo cáo sự cố</h3>
                 <button onClick={() => setShowIncidentModal(false)} className="text-gray-500 hover:text-gray-800">
-                  <X className="w-8 h-8" />
+                  <X className="w-6 h-6" />
                 </button>
               </div>
-              <div className="space-y-5">
+              <div className="space-y-3">
                 {incidentTypes.map((type) => {
                   const Icon = type.icon;
                   return (
-                    <label key={type.id} className="flex items-center gap-5 p-5 border-2 rounded-2xl cursor-pointer hover:bg-red-50 transition">
+                    <label key={type.id} className="flex items-center gap-3 p-3 border rounded-xl cursor-pointer hover:bg-red-50 transition">
                       <input
                         type="radio"
                         name="incident"
                         value={type.id}
                         checked={selectedIncident === type.id}
                         onChange={(e) => setSelectedIncident(e.target.value)}
-                        className="w-6 h-6 text-red-600"
+                        className="w-5 h-5 text-red-600"
                       />
-                      <Icon className="w-8 h-8 text-red-600" />
-                      <span className="text-lg font-semibold">{type.label}</span>
+                      <Icon className="w-5 h-5 text-red-600" />
+                      <span className="text-sm font-medium">{type.label}</span>
                     </label>
                   );
                 })}
@@ -814,20 +818,20 @@ export default function DriverOperations() {
                   placeholder="Ghi chú chi tiết (tùy chọn)..."
                   value={incidentNote}
                   onChange={(e) => setIncidentNote(e.target.value)}
-                  className="w-full p-4 border-2 rounded-xl resize-none text-gray-700"
-                  rows={3}
+                  className="w-full p-3 border rounded-lg resize-none text-gray-700 text-sm"
+                  rows={2}
                 />
-                <div className="flex gap-4">
+                <div className="flex gap-3">
                   <button
                     onClick={handleSendIncident}
                     disabled={!selectedIncident}
-                    className="flex-1 py-4 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white font-bold text-xl rounded-xl transition"
+                    className="flex-1 py-3 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white font-bold text-base rounded-lg transition"
                   >
                     GỬI NGAY
                   </button>
                   <button
                     onClick={() => setShowIncidentModal(false)}
-                    className="flex-1 py-4 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold text-xl rounded-xl transition"
+                    className="flex-1 py-3 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold text-base rounded-lg transition"
                   >
                     Hủy
                   </button>

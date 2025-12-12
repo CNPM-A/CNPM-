@@ -60,9 +60,9 @@
 // export default Footer
 import React from 'react';
 
-export function Footer({open}) {
+export function Footer({ open }) {
   return (
-    <footer className={` mt-8 ${open && "ml-64" }`} > {/* margin-left bằng width sidebar */}
+    <footer className={` mt-8 ${open && "ml-64"}`} > {/* margin-left bằng width sidebar */}
       {/* CTA band */}
       <div className="w-full bg-indigo-600 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
@@ -104,7 +104,7 @@ export function Footer({open}) {
         </div>
 
         <div className="border-t border-[#12214a] py-4">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-sm text-gray-400">© 2025 SchoolBus Tracker. Bảo lưu mọi quyền.</div>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-sm text-gray-400">© 2025 Safe to School. Bảo lưu mọi quyền.</div>
         </div>
       </div>
     </footer>

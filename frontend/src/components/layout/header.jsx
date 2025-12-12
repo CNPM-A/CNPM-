@@ -17,7 +17,7 @@
 //               S
 //             </div>
 //             <div>
-//               <div className="text-gray-900 font-bold text-lg">SchoolBus Tracker</div>
+//               <div className="text-gray-900 font-bold text-lg">Safe to School</div>
 //             </div>
 //           </div>
 
@@ -64,6 +64,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { Bell, LogOut, User } from 'lucide-react';
 import { useRouteTracking } from '../../context/RouteTrackingContext';
+import logo from '../../assets/logo.jpg';
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -95,7 +96,7 @@ export default function Header() {
   const pushNotification = (title, body) => {
     const now = new Date();
     const item = {
-      id: `${now.getTime()}-${Math.floor(Math.random()*1000)}`,
+      id: `${now.getTime()}-${Math.floor(Math.random() * 1000)}`,
       title,
       body,
       time: now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
@@ -155,11 +156,13 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-indigo-600 text-white rounded-lg flex items-center justify-center font-bold text-xl">
-              S
-            </div>
+            <img
+              src={logo}
+              alt="Safe to School Logo"
+              className="w-14 h-14 rounded-lg object-cover"
+            />
             <div>
-              <div className="text-gray-900 font-bold text-lg">SchoolBus Tracker</div>
+              <div className="text-gray-900 font-bold text-lg">Safe to School</div>
             </div>
           </div>
 
@@ -208,7 +211,7 @@ export default function Header() {
                     <button
                       onClick={() => {
                         setNotifications([]);
-                        try { localStorage.removeItem('header_notifications'); } catch (e) {}
+                        try { localStorage.removeItem('header_notifications'); } catch (e) { }
                       }}
                       className="text-sm text-gray-600 hover:underline"
                     >

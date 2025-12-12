@@ -15,7 +15,7 @@ const DriverOperations = lazy(() => import('../pages/driver/DriverOperations'));
 
 const Loader = () => (
   <div className="fixed inset-0 bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center z-50">
-    <div className="text-white text-3xl font-bold animate-pulse">SchoolBus Tracker</div>
+    <div className="text-white text-3xl font-bold animate-pulse">Safe to School</div>
   </div>
 );
 

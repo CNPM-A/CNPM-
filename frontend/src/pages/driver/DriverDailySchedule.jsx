@@ -661,29 +661,6 @@ export default function DriverDailySchedule() {
                   </div>
                 </div>
               </div>
-
-              {/* NÚT BẮT ĐẦU / DỪNG */}
-              <button
-                type="button"
-                onClick={isTracking ? stopTracking : startTracking}
-                disabled={loading}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-xs shadow-lg transition-all transform hover:scale-105 disabled:opacity-70 ${isTracking
-                  ? 'bg-gradient-to-r from-red-500 to-pink-600 text-white'
-                  : 'bg-gradient-to-r from-green-500 to-emerald-600 text-white'
-                  }`}
-              >
-                {isTracking ? (
-                  <>
-                    <PauseCircle className="w-5 h-5" />
-                    DỪNG
-                  </>
-                ) : (
-                  <>
-                    <PlayCircle className="w-5 h-5" />
-                    BẮT ĐẦU
-                  </>
-                )}
-              </button>
             </div>
           </div>
         </div>

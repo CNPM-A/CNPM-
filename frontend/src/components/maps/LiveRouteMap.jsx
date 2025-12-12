@@ -70,25 +70,27 @@ export default function LiveRouteMap({ route, routeShape = null }) {
   const displayPath = realPath.length > 0 ? realPath : route.rawPath;
 
   return (
-    <MapContainer center={route.rawPath[0]} zoom={14} style={{ height: '100%', width: '100%' }}>
-      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+    <div className="relative z-0" style={{ height: '100%', width: '100%' }}>
+      <MapContainer center={route.rawPath[0]} zoom={14} style={{ height: '100%', width: '100%' }}>
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-      {/* Đường thật */}
-      <Polyline positions={displayPath} color="#3b82f6" weight={8} opacity={0.9} />
+        {/* Đường thật */}
+        <Polyline positions={displayPath} color="#3b82f6" weight={8} opacity={0.9} />
 
-      {/* Trạm dừng */}
-      {route.stations.map(s => (
-        <Marker key={s.id} position={[s.lat, s.lng]}>
-          <Popup>
-            <div className="font-bold">{s.name}</div>
-            <div className="text-sm">Dự kiến: {s.time}</div>
-            <div className="text-xs">Đón {s.students} em</div>
-          </Popup>
-        </Marker>
-      ))}
+        {/* Trạm dừng */}
+        {route.stations.map(s => (
+          <Marker key={s.id} position={[s.lat, s.lng]}>
+            <Popup>
+              <div className="font-bold">{s.name}</div>
+              <div className="text-sm">Dự kiến: {s.time}</div>
+              <div className="text-xs">Đón {s.students} em</div>
+            </Popup>
+          </Marker>
+        ))}
 
-      {/* Xe chạy animation */}
-      {displayPath.length > 0 && <AnimatedBus path={displayPath} />}
-    </MapContainer>
+        {/* Xe chạy animation */}
+        {displayPath.length > 0 && <AnimatedBus path={displayPath} />}
+      </MapContainer>
+    </div>
   );
 }
