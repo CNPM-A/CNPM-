@@ -1,12 +1,12 @@
 // src/pages/driver/DriverOperations.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   AlertTriangle, Phone, MessageCircle,
   Siren, MapPin, Clock, Users, X, Bus, Loader2
 } from 'lucide-react';
 import { useRouteTracking } from '../../context/RouteTrackingContext';
 import { useAuth } from '../../hooks/useAuth';
-import { getMySchedule } from '../../services/tripService';
+import { getMySchedule, getTripStudents } from '../../services/tripService';
 import { sendDriverAlert, connectSocket, getSocket } from '../../services/socketService';
 
 // ✅ Alert types mapped to backend enum: SOS, LATE, OFF_ROUTE, SPEEDING, OTHER
@@ -40,6 +40,8 @@ export default function DriverOperations() {
   const [alertStatus, setAlertStatus] = useState(null); // For showing alert feedback
   const [scheduleData, setScheduleData] = useState([]); // ✅ Lưu dữ liệu từ getMySchedule()
   const [selectedTripIndex, setSelectedTripIndex] = useState(0); // ✅ Chọn tuyến để xem học sinh
+  const [selectedTripDetail, setSelectedTripDetail] = useState(null); // ✅ Chi tiết trip với students populated
+  const [loadingStudents, setLoadingStudents] = useState(false); // ✅ Loading state cho danh sách học sinh
 
   // ✅ Check if driver can send alerts (must have active trip)
   const canSendAlert = Boolean(currentTripId && isTracking);
@@ -88,6 +90,34 @@ export default function DriverOperations() {
 
     loadSchedule();
   }, []);
+
+  // ✅ Fetch danh sách học sinh từ API GET /trips/:id/students (đã populate sẵn)
+  const fetchTripStudents = useCallback(async (tripId) => {
+    if (!tripId) return;
+
+    try {
+      setLoadingStudents(true);
+      console.log('[DriverOperations] Fetching students for trip:', tripId);
+      // API trả về: { status: 'success', data: studentStops[] }
+      // Mỗi studentStop có: studentId: {name, grade}, stationId: {name}, action
+      const studentStops = await getTripStudents(tripId);
+      console.log('[DriverOperations] Students loaded:', studentStops?.length);
+      setSelectedTripDetail(studentStops || []);
+    } catch (err) {
+      console.warn('[DriverOperations] Không thể tải danh sách học sinh:', err);
+      setSelectedTripDetail([]);
+    } finally {
+      setLoadingStudents(false);
+    }
+  }, []);
+
+  // ✅ Tự động load danh sách học sinh khi chọn tuyến mới
+  useEffect(() => {
+    const selectedTrip = scheduleData[selectedTripIndex];
+    if (selectedTrip?._id) {
+      fetchTripStudents(selectedTrip._id);
+    }
+  }, [selectedTripIndex, scheduleData, fetchTripStudents]);
 
   // Helper: lưu tin nhắn + broadcast
   const pushChatMessage = (threadId, msgObj) => {
@@ -385,15 +415,22 @@ export default function DriverOperations() {
               {scheduleData[selectedTripIndex] && (
                 <span className="text-sm font-normal text-gray-500">
                   — {scheduleData[selectedTripIndex]?.routeId?.name || 'Chuyến đi'}
+                  {' '}({Array.isArray(selectedTripDetail) ? selectedTripDetail.length : 0} HS)
                 </span>
               )}
             </h2>
 
             {/* Danh sách học sinh */}
             <div className="max-h-80 overflow-y-auto space-y-2">
-              {(() => {
-                const selectedTrip = scheduleData[selectedTripIndex];
-                const students = selectedTrip?.studentStops || selectedTrip?.students || [];
+              {loadingStudents ? (
+                <div className="text-center py-8">
+                  <Loader2 className="w-8 h-8 animate-spin text-indigo-500 mx-auto mb-3" />
+                  <p className="text-gray-500">Đang tải danh sách học sinh...</p>
+                </div>
+              ) : (() => {
+                // selectedTripDetail là mảng studentStops từ API /trips/:id/students
+                // Cấu trúc: { studentId: {name, grade}, stationId: {name}, action }
+                const students = Array.isArray(selectedTripDetail) ? selectedTripDetail : [];
 
                 if (students.length === 0) {
                   return (
@@ -405,14 +442,15 @@ export default function DriverOperations() {
                 }
 
                 return students.map((s, idx) => {
-                  const studentName = s.studentId?.name || s.name || `Học sinh ${idx + 1}`;
-                  const studentGrade = s.studentId?.grade || s.grade || '';
-                  const status = s.action || s.status || 'PENDING';
+                  // Đọc đúng cấu trúc từ API populate
+                  const studentName = s.studentId?.name || `Học sinh ${idx + 1}`;
+                  const studentGrade = s.studentId?.grade || '';
                   const stationName = s.stationId?.name || '';
+                  const status = s.action || 'PENDING'; // action: PENDING, PICKED_UP, DROPPED_OFF, ABSENT
 
                   return (
                     <div
-                      key={s._id || s.studentId?._id || idx}
+                      key={s._id || idx}
                       className={`flex items-center justify-between p-3 rounded-xl border-2 transition ${status === 'PICKED_UP' || status === 'DROPPED_OFF'
                         ? 'bg-green-50 border-green-200'
                         : status === 'ABSENT'
