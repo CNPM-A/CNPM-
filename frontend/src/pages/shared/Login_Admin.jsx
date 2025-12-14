@@ -44,7 +44,7 @@
       e.preventDefault()
       
       // Validation
-      if (!form.username. trim()) {
+      if (!form.username.trim()) {
         setError('Vui lòng nhập email hoặc số điện thoại')
         return
       }
@@ -63,7 +63,7 @@
         // 🔴 Backend nhận { username, password }
         // username có thể là email HOẶC phoneNumber
         const response = await api.post('/auth/signin', {
-          username: form.username. trim(),
+          username: form.username.trim(),
           password: form.password
         })
 
@@ -71,9 +71,10 @@
 
         // 🔴 Backend trả về accessToken (KHÔNG phải token)
         if (response.data.accessToken) {
-          // Lưu token và user info
+          // Lưu token và user info (lưu cả 2 key để đảm bảo tương thích)
           localStorage.setItem('accessToken', response.data.accessToken)
-          localStorage. setItem('user', JSON.stringify(response.data.data?. user || {}))
+          localStorage.setItem('token', response.data.accessToken) // Socket cũng dùng key này
+          localStorage.setItem('user', JSON.stringify(response.data.data?.user || {}))
           
           // Hiển thị thông báo thành công
           console.log('🎉 Đăng nhập thành công!  Chuyển hướng.. .')

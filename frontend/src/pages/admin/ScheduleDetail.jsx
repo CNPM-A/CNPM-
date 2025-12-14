@@ -31,6 +31,22 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 })
 
+// Helper: Lấy tọa độ station từ nhiều format khác nhau
+const getStationPosition = (station) => {
+  // Format 1: address.location.coordinates [lng, lat] (GeoJSON)
+  if (station?.address?.location?.coordinates?.length >= 2) {
+    const [lng, lat] = station.address.location.coordinates
+    return [lat, lng]
+  }
+  // Format 2: address.latitude / address.longitude (legacy)
+  if (station?.address?.latitude && station?.address?.longitude) {
+    return [station.address.latitude, station.address.longitude]
+  }
+  // Fallback: Trung tâm HCM
+  console.warn('Station missing coordinates:', station?.name)
+  return [10.7769, 106.7009]
+}
+
 // Custom icon cho trạm
 const createStationIcon = (color, number) => L.divIcon({
   className: 'custom-station-marker',
@@ -299,7 +315,7 @@ export default function ScheduleDetail() {
             return (
               <Marker
                 key={station._id}
-                position={[station.address.latitude, station.address.longitude]}
+                position={getStationPosition(station)}
                 icon={createStationIcon(color, index + 1)}
                 eventHandlers={{
                   click: () => handleStationClick(station)
@@ -316,7 +332,7 @@ export default function ScheduleDetail() {
                       </Typography>
                     </Stack>
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
-                      📍 {station.address.fullAddress}
+                      📍 {station.address?.fullAddress || 'Chưa có địa chỉ'}
                     </Typography>
                     <Button
                       size="small"

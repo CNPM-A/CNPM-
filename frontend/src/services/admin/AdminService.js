@@ -369,6 +369,11 @@ export const AdminService = {
     return response.data.data;
   },
 
+  getScheduleRoute: async (scheduleId) => {
+    const response = await api.get(`/schedules/${scheduleId}/route`);
+    return response.data.data;
+  },
+
   // ==================== TRIPS ====================
   listTrips: async (params = {}) => {
     const response = await api.get('/trips', { params });

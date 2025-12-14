@@ -152,9 +152,11 @@ import { getTrip } from './tripService';
 
 let socket = null;
 
-// Socket URL - cắt bỏ /api/v1 từ API URL
+// Socket URL - ưu tiên VITE_SOCKET_URL, fallback tính từ VITE_API_URL
 const SOCKET_URL =
-  import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'https://smart-school-bus-api.onrender.com';
+  import.meta.env.VITE_SOCKET_URL || 
+  import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 
+  'https://smart-school-bus-api.onrender.com';
 
 /**
  * Kết nối Socket.IO với token xác thực
